@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -9,10 +9,19 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useAppStore } from '../../../store';
 import Input from '../../ui/Input';
 import './therapists-list.css';
 import { TherapistSpecialty } from '../../../types';
+
+type Therapist = {
+  id: string;
+  name: string;
+  city: string;
+  avatar: string;
+  rating: number;
+  specialties: TherapistSpecialty[];
+  education: string;
+};
 
 const specialties: TherapistSpecialty[] = [
   'relationships',
@@ -22,14 +31,18 @@ const specialties: TherapistSpecialty[] = [
   'general',
 ];
 
-
 const TherapistsList: React.FC = () => {
   const navigate = useNavigate();
-  const therapists = useAppStore((state) => state.therapists);
+  const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSpecialty, setSelectedSpecialty] = useState<TherapistSpecialty | null>(
-    null
-  );
+  const [selectedSpecialty, setSelectedSpecialty] = useState<TherapistSpecialty | null>(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('therapists');
+    if (stored) {
+      setTherapists(JSON.parse(stored));
+    }
+  }, []);
 
   const filteredTherapists = therapists.filter((therapist) => {
     const matchesSearch =

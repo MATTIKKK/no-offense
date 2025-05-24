@@ -9,19 +9,33 @@ class User(Base):
     password = Column(String)
     name = Column(String)
 
+    # Invites
+    sent_invites = relationship("Invite", foreign_keys="[Invite.from_user_id]", back_populates="from_user")
+    received_invites = relationship("Invite", foreign_keys="[Invite.to_user_id]", back_populates="to_user")
+
+    # Messages
+    sent_messages = relationship("Message", back_populates="sender")
+
 class Invite(Base):
     __tablename__ = "invites"
     id = Column(Integer, primary_key=True)
     from_user_id = Column(String, ForeignKey("users.id"))
     to_user_id = Column(String, ForeignKey("users.id"))
-    relationship = Column(String)
+    relationship_type = Column(String)
+    label_for_partner = Column(String)
     status = Column(String)
+
+    from_user = relationship("User", foreign_keys=[from_user_id], back_populates="sent_invites")
+    to_user = relationship("User", foreign_keys=[to_user_id], back_populates="received_invites")
+
 
 class Chat(Base):
     __tablename__ = "chats"
     id = Column(Integer, primary_key=True)
     user1_id = Column(String, ForeignKey("users.id"))
     user2_id = Column(String, ForeignKey("users.id"))
+
+    messages = relationship("Message", back_populates="chat", cascade="all, delete-orphan")
 
 class Message(Base):
     __tablename__ = "messages"
@@ -32,10 +46,13 @@ class Message(Base):
     topic = Column(String, nullable=True)
     is_conflict = Column(Boolean, default=False)
 
+    chat = relationship("Chat", back_populates="messages")
+    sender = relationship("User", back_populates="sent_messages")
+
 class Specialist(Base):
     __tablename__ = "specialists"
     id = Column(Integer, primary_key=True)
-    name = Column(String)
-    city = Column(String)
-    photo_url = Column(String)
-    specialization = Column(String)
+    name = Column(String, nullable=False)
+    city = Column(String, nullable=False)
+    photo_url = Column(String, nullable=True)
+    specialization = Column(String, nullable=False)

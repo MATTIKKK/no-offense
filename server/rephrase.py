@@ -1,8 +1,12 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File
+import whisper
+import tempfile
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
 import requests
+
+whisper_model = whisper.load_model("base") 
 
 load_dotenv()
 router = APIRouter(prefix="/ai", tags=["AI"])
@@ -28,7 +32,7 @@ async def rephrase_message(req: RephraseRequest):
             "messages": [
                 {
                     "role": "system",
-                    "content": "Ты профессиональный дипломат, который делает речь вежливее и доброжелательнее. Переформулируй сообщение так, чтобы сообщение звучало более конструктивно, но сохранило смысл и стиль неформального общения. Сообщение должно быть построено для второго лица единственного числа. И на идеально русском языке, коротко"
+                    "content": "Ты опытный дипломат и коммуникатор. Переформулируй входящее сообщение так, чтобы оно звучало вежливо, доброжелательно и конструктивно, при этом точно передавало основную мысль. Стиль — неформальный, обращение на 'ты', язык — идеальный русский. Если исходное сообщение содержит чрезмерное количество нецензурных выражений или оскорблений, не переписывай его — просто ответь: 'Предлагаю вернуться к этому разговору чуть позже, когда мы оба успокоимся.",
                 },
                 {
                     "role": "user",
@@ -48,3 +52,18 @@ async def rephrase_message(req: RephraseRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Groq AI rephrasing failed")
+
+
+@router.post("/stt")
+async def speech_to_text(file: UploadFile = File(...)):
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
+            tmp.write(await file.read())
+            tmp_path = tmp.name
+
+        result = whisper_model.transcribe(tmp_path, language="ru")
+        return {"text": result["text"].strip()}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Whisper STT failed")

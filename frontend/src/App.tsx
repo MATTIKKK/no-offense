@@ -1,15 +1,17 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Routes,
   Route,
   Navigate,
   useNavigate,
+  useLocation,
 } from 'react-router-dom';
-import { useAppStore } from './store';
 
 // Auth Screens
 import WelcomeScreen from './components/auth/welcome-screen/WelcomeScreen';
-import CreateSharedIDScreen from './components/auth/create-shared-id/CreateSharedIDScreen';
+import CreateSharedID from './components/auth/create-shared-id/CreateSharedID';
+import Register from './components/auth/register/Register';
+import Login from './components/auth/login/Login';
 
 // Main Screens
 import ChatScreen from './components/chat/chat-screen/ChatScreen';
@@ -20,32 +22,45 @@ import ReconciliationStore from './components/reconciliation/reconciliation-stor
 import EducationCenter from './components/education/EducationCenter';
 import ConflictHistory from './components/conflict/ConflictHistory';
 import Settings from './components/settings/Settings';
+import Notifications from './components/notifications/Notifications';
 
 function App() {
   const navigate = useNavigate();
-  const currentUser = useAppStore((state) => state.currentUser);
+  const location = useLocation();
 
-  // Mock the SOS trigger with a long press
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  // Загружаем пользователя из localStorage при инициализации
+  useEffect(() => {
+    const id = localStorage.getItem('userId');
+    const name = localStorage.getItem('userName');
+    if (id && name) {
+      setCurrentUser({ id, name });
+    } else {
+      setCurrentUser(null);
+    }
+  }, [location.pathname]); // обновляем, когда меняется путь
+
+  // Слушаем long-press для SOS
   let pressTimer: NodeJS.Timeout | null = null;
 
   const handleMouseDown = () => {
     pressTimer = setTimeout(() => {
-      navigate('/emergency')
-    }, 1000); 
+      navigate('/emergency');
+    }, 1000);
   };
 
   const handleMouseUp = () => {
-    if (pressTimer) {
-      clearTimeout(pressTimer);
-    }
+    if (pressTimer) clearTimeout(pressTimer);
   };
 
-  // Protected route component
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (!currentUser) {
-      return <Navigate to="/" replace />;
+      return <Navigate to="/login" replace />;
     }
-
     return <>{children}</>;
   };
 
@@ -57,82 +72,90 @@ function App() {
       onTouchStart={handleMouseDown}
       onTouchEnd={handleMouseUp}
     >
-        <Routes>
-          {/* Auth Routes */}
-          <Route path="/" element={<WelcomeScreen />} />
-          <Route path="/create-shared-id" element={<CreateSharedIDScreen />} />
-          <Route path="/connect-shared-id" element={<CreateSharedIDScreen />} />
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<WelcomeScreen />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/create-shared-id" element={<CreateSharedID />} />
+        <Route path="/connect-shared-id" element={<CreateSharedID />} />
 
-          {/* Main Routes */}
-          <Route
-            path="/home"
-            element={
-              <ProtectedRoute>
-                <ChatsList />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/chat/:id"
-            element={
-              <ProtectedRoute>
-                <ChatScreen />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/conflicts"
-            element={
-              // <ProtectedRoute>
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute>
+              <ChatsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Notifications />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat/:id"
+          element={
+            <ProtectedRoute>
+              <ChatScreen />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/conflicts"
+          element={
+            <ProtectedRoute>
               <ConflictHistory />
-              // </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/reconciliation"
-            element={
-              <ProtectedRoute>
-                <ReconciliationStore />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/therapists"
-            element={
-              <ProtectedRoute>
-                <TherapistsList />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/therapist/:id"
-            element={
-              <ProtectedRoute>
-                <TherapistProfile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/education"
-            element={
-              // <ProtectedRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reconciliation"
+          element={
+            <ProtectedRoute>
+              <ReconciliationStore />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/therapists"
+          element={
+            <ProtectedRoute>
+              <TherapistsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/therapist/:id"
+          element={
+            <ProtectedRoute>
+              <TherapistProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/education"
+          element={
+            <ProtectedRoute>
               <EducationCenter />
-              // </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
 
-          {/* Fallback Route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   );
 }

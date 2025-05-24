@@ -1,13 +1,35 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Book, Play, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useAppStore } from '../../store';
 import './education-center.css';
+
+type Course = {
+  id: string;
+  title: string;
+  description: string;
+  duration: string;
+  progress: number;
+  imageUrl: string;
+};
 
 const EducationCenter: React.FC = () => {
   const navigate = useNavigate();
-  const courses = useAppStore(state => state.courses);
+  const [courses, setCourses] = useState<Course[]>([]);
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/courses');
+        const data = await res.json();
+        setCourses(data);
+      } catch (err) {
+        console.error('Failed to load courses:', err);
+      }
+    };
+
+    fetchCourses();
+  }, []);
 
   return (
     <div className="education-page">
@@ -28,7 +50,7 @@ const EducationCenter: React.FC = () => {
           </div>
 
           <div className="course-grid">
-            {courses.map(course => (
+            {courses.map((course) => (
               <motion.div
                 key={course.id}
                 className="course-card"
@@ -54,7 +76,10 @@ const EducationCenter: React.FC = () => {
                   <p className="course-description">{course.description}</p>
 
                   <div className="course-progress-bar">
-                    <div className="course-progress-fill" style={{ width: `${course.progress}%` }}></div>
+                    <div
+                      className="course-progress-fill"
+                      style={{ width: `${course.progress}%` }}
+                    />
                   </div>
 
                   <div className="course-progress-info">

@@ -1,115 +1,174 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, AlertCircle, CheckCircle, Clock } from 'lucide-react';
-import { format } from 'date-fns';
-import { useAppStore } from '../../store';
+import { MessageSquare, Users, Settings, PlusCircle } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import './conflict-history.css';
 
-const ConflictHistory: React.FC = () => {
+const ChatsList: React.FC = () => {
   const navigate = useNavigate();
-  const conflicts = useAppStore(state => state.conflicts);
-  const [activeFilter] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
+  const [conversations, setConversations] = useState<any[]>([]);
 
-  const filteredConflicts = activeFilter 
-    ? conflicts.filter(conflict => conflict.tags.includes(activeFilter))
-    : conflicts;
+  useEffect(() => {
+    const id = localStorage.getItem('userId');
+    const name = localStorage.getItem('userName');
+    if (id && name) {
+      setCurrentUser({ id, name });
+    } else {
+      navigate('/login');
+    }
+  }, [navigate]);
 
-  const getTagColor = (tag: string) => {
-    switch (tag) {
-      case 'communication':
-        return 'tag-communication';
-      case 'money':
-        return 'tag-money';
-      case 'planning':
-        return 'tag-planning';
-      case 'priorities':
-        return 'tag-priorities';
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const res = await fetch(`http://localhost:8000/conversations/${localStorage.getItem('userId')}`);
+        const data = await res.json();
+        setConversations(data);
+      } catch (err) {
+        console.error('Failed to load conversations:', err);
+      }
+    };
+
+    fetchConversations();
+  }, []);
+
+  const getConflictStatusClass = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'status-active';
+      case 'paused':
+        return 'status-paused';
+      case 'resolved':
+        return 'status-resolved';
       default:
-        return 'tag-default';
+        return 'status-default';
     }
   };
 
   return (
-    <div className="conflict-page">
-      <header className="conflict-header">
-        <div className="conflict-header-inner">
-          <button className="back-button" onClick={() => navigate('/home')}>
-            <ArrowLeft size={22} />
+    <div className="chat-list-container">
+      <header className="chats-list-header">
+        <div className="chats-list-header-inner">
+          <div className="chats-list-title">
+            <MessageSquare />
+            noOffense
+          </div>
+          <button
+            className="chats-list-action-btn"
+            onClick={() => navigate('/settings')}
+            aria-label="Open settings"
+          >
+            <Settings size={22} />
           </button>
-          <h1 className="conflict-title">Conflict History</h1>
         </div>
       </header>
 
-      <main className="conflict-main">
-        <div className="conflict-section">
-          <div className="conflict-section-header">
-            <h2 className="conflict-subtitle">
-              <Calendar size={18} /> Recent Conflicts
-            </h2>
-          </div>
+      <main className="chats-list-main">
+        <div className="chat-connections-header">
+          <h2>Connections</h2>
+          <button onClick={() => navigate('/create-shared-id')}>
+            <PlusCircle size={18} />
+            <span>Add New</span>
+          </button>
+        </div>
 
-          <div className="conflict-list">
-            {filteredConflicts.length === 0 ? (
-              <div className="conflict-empty">
-                <CheckCircle size={40} className="empty-icon" />
-                <p className="empty-message">No conflicts found</p>
-                <p className="empty-sub">
-                  {activeFilter 
-                    ? `No conflicts with the "${activeFilter}" tag`
-                    : 'Enjoy your peaceful relationship'}
-                </p>
-              </div>
-            ) : (
-              filteredConflicts.map(conflict => (
-                <div 
-                  key={conflict.id}
-                  className="conflict-card"
-                  onClick={() => navigate(`/chat/${conflict.conversationId}`)}
+        <div className="chat-list">
+          {conversations.length === 0 ? (
+            <div className="chat-empty">
+              <Users size={40} className="chat-empty-icon" />
+              <p>No connections yet</p>
+              <p className="text-sm">
+                Create a Shared ID to connect with someone
+              </p>
+            </div>
+          ) : (
+            conversations.map((conversation) => {
+              const otherParticipant = conversation.participants.find(
+                (p: any) => p.id !== currentUser?.id
+              );
+              if (!otherParticipant) return null;
+
+              const lastMessage =
+                conversation.messages[conversation.messages.length - 1];
+
+              return (
+                <motion.div
+                  key={conversation.id}
+                  className="chat-card"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileHover={{
+                    y: -2,
+                    transition: { duration: 0.2 },
+                  }}
+                  onClick={() => navigate(`/chat/${conversation.id}`)}
                 >
-                  <div className="conflict-card-body">
-                    <div className="conflict-card-header">
-                      <div className="conflict-status">
-                        {conflict.resolvedAt ? (
-                          <div className="status-icon resolved">
-                            <CheckCircle size={18} />
-                          </div>
+                  <div className="chat-card-inner">
+                    <div className="chat-user-row">
+                      <div className="chat-user-left">
+                        {otherParticipant.avatar ? (
+                          <img
+                            src={otherParticipant.avatar}
+                            alt={otherParticipant.name}
+                            className="chat-avatar"
+                          />
                         ) : (
-                          <div className="status-icon unresolved">
-                            <AlertCircle size={18} />
+                          <div className="chat-avatar-fallback">
+                            {otherParticipant.name.charAt(0).toUpperCase()}
                           </div>
                         )}
-
-                        <div>
-                          <h3 className="conflict-topic">{conflict.topic || 'Untitled Conflict'}</h3>
-                          <div className="conflict-date">
-                            <Clock size={14} />
-                            {format(new Date(conflict.startedAt), 'MMM d, yyyy')}
-                            {conflict.resolvedAt && (
-                              <span className="resolved-label">Resolved</span>
-                            )}
+                        <div className="chat-user-info">
+                          <h3>{otherParticipant.name}</h3>
+                          <div className="chat-status">
+                            <span
+                              className={`chat-status-indicator ${getConflictStatusClass(
+                                conversation.conflictStatus
+                              )}`}
+                            />
+                            <span>
+                              {conversation.conflictStatus === 'active'
+                                ? 'Active discussion'
+                                : conversation.conflictStatus === 'paused'
+                                ? 'Paused'
+                                : conversation.conflictStatus === 'resolved'
+                                ? 'Resolved'
+                                : 'No conflicts'}
+                            </span>
                           </div>
                         </div>
                       </div>
-
-                      {conflict.isRecurring && (
-                        <span className="recurring-badge">Recurring</span>
+                      {lastMessage && (
+                        <span className="text-xs text-neutral-500">
+                          {formatDistanceToNow(new Date(lastMessage.timestamp), {
+                            addSuffix: true,
+                          })}
+                        </span>
                       )}
                     </div>
 
-                    <div className="conflict-tags">
-                      {conflict.tags.map(tag => (
-                        <span key={tag} className={`tag ${getTagColor(tag)}`}>{tag}</span>
-                      ))}
-                    </div>
+                    {lastMessage && (
+                      <p className="chat-last-message">
+                        {lastMessage.senderId === currentUser?.id ? 'You: ' : ''}
+                        {lastMessage.content}
+                      </p>
+                    )}
+
+                    {conversation.conflictTopic && (
+                      <div className="chat-topic">
+                        <span>Topic: {conversation.conflictTopic}</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))
-            )}
-          </div>
+                </motion.div>
+              );
+            })
+          )}
         </div>
       </main>
     </div>
   );
 };
 
-export default ConflictHistory;
+export default ChatsList;

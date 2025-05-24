@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -9,21 +9,43 @@ import {
   Calendar,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useAppStore } from '../../../store';
 import Button from '../../ui/button/Button';
 import './therapist-profile.css';
 
-const Therapisttherapist: React.FC = () => {
+type Therapist = {
+  id: string;
+  name: string;
+  city: string;
+  rating: number;
+  avatar: string;
+  specialties: string[];
+  education: string;
+  experience: string;
+};
+
+const TherapistProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const therapists = useAppStore((state) => state.therapists);
+  const [therapist, setTherapist] = useState<Therapist | null>(null);
 
-  const therapist = therapists.find((t) => t.id === id);
+  useEffect(() => {
+    const stored = localStorage.getItem('therapists');
+    if (!stored) {
+      navigate('/therapists');
+      return;
+    }
 
-  if (!therapist) {
-    navigate('/therapists');
-    return null;
-  }
+    const therapists: Therapist[] = JSON.parse(stored);
+    const found = therapists.find((t) => t.id === id);
+    if (!found) {
+      navigate('/therapists');
+      return;
+    }
+
+    setTherapist(found);
+  }, [id, navigate]);
+
+  if (!therapist) return null;
 
   return (
     <div className="therapist-profile-page">
@@ -32,7 +54,7 @@ const Therapisttherapist: React.FC = () => {
           <button className="back-button" onClick={() => navigate('/therapists')}>
             <ArrowLeft size={22} />
           </button>
-          <h1 className="header-title">Therapist therapist</h1>
+          <h1 className="header-title">Therapist Profile</h1>
         </div>
       </header>
 
@@ -114,4 +136,4 @@ const Therapisttherapist: React.FC = () => {
   );
 };
 
-export default Therapisttherapist;
+export default TherapistProfile;

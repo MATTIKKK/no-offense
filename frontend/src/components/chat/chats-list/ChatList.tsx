@@ -1,20 +1,43 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, Users, Settings, PlusCircle } from 'lucide-react';
-import { useAppStore } from '../../../store';
+import { MessageSquare, Users, Settings, PlusCircle, Bell } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import './chats-list.css';
 
 const ChatsList: React.FC = () => {
   const navigate = useNavigate();
-  const currentUser = useAppStore((state) => state.currentUser);
-  const conversations = useAppStore((state) => state.getConversationsForUser());
+  const [currentUser, setCurrentUser] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [conversations, setConversations] = useState<any[]>([]);
 
-  if (!currentUser) {
-    navigate('/');
-    return null;
-  }
+  useEffect(() => {
+    const id = localStorage.getItem('userId');
+    const name = localStorage.getItem('userName');
+    if (id && name) {
+      setCurrentUser({ id, name });
+    } else {
+      navigate('/login');
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const res = await fetch(
+          `http://localhost:8000/chat/chats/${currentUser?.id}`
+        );
+        const data = await res.json();
+        console.log('Conversations:', data);
+      } catch (err) {
+        console.error('Failed to load conversations:', err);
+      }
+    };
+
+    fetchConversations();
+  }, []);
 
   const getConflictStatusClass = (status: string) => {
     switch (status) {
@@ -37,13 +60,22 @@ const ChatsList: React.FC = () => {
             <MessageSquare />
             noOffense
           </div>
-          <button
-            className="chats-list-action-btn"
-            onClick={() => navigate('/settings')}
-            aria-label="Open settings"
-          >
-            <Settings size={22} />
-          </button>
+          <div className="chats-list-actions">
+            <button
+              className="chats-list-action-btn"
+              onClick={() => navigate('/notifications')}
+              aria-label="Notifications"
+            >
+              <Bell size={22} />
+            </button>
+            <button
+              className="chats-list-action-btn"
+              onClick={() => navigate('/settings')}
+              aria-label="Open settings"
+            >
+              <Settings size={22} />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -68,7 +100,7 @@ const ChatsList: React.FC = () => {
           ) : (
             conversations.map((conversation) => {
               const otherParticipant = conversation.participants.find(
-                (p) => p.id !== currentUser.id
+                (p: any) => p.id !== currentUser?.id
               );
               if (!otherParticipant) return null;
 
@@ -135,7 +167,9 @@ const ChatsList: React.FC = () => {
 
                     {lastMessage && (
                       <p className="chat-last-message">
-                        {lastMessage.senderId === currentUser.id ? 'You: ' : ''}
+                        {lastMessage.senderId === currentUser?.id
+                          ? 'You: '
+                          : ''}
                         {lastMessage.content}
                       </p>
                     )}

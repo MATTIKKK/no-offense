@@ -18,13 +18,13 @@ const WelcomeScreen: React.FC = () => {
           type="submit"
           fullWidth
           size="lg"
-          onClick={() => navigate('/create-shared-id')}
+          onClick={() => navigate('/register')}
         >
           Get Started
         </Button>
         <p
           className="login-text"
-          onClick={() => navigate('/connect-shared-id')}
+          onClick={() => navigate('/login')}
         >
           Already have an account?
         </p>

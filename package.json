@@ -1,0 +1,23 @@
+{
+  "name": "no-offense",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"cd frontend && npm run dev\" \"cd server && ../server/venv/bin/uvicorn main:app --reload --host 0.0.0.0 --port 8000\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MATTIKKK/no-offense.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MATTIKKK/no-offense/issues"
+  },
+  "homepage": "https://github.com/MATTIKKK/no-offense#readme",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

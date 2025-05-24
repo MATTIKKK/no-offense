@@ -1,5 +1,22 @@
 export type RelationshipType = 'partner' | 'spouse' | 'friend' | 'family';
 
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  id: string;
+  name?: string;
+  message?: string;
+}
+
 export type User = {
   id: string;
   name: string;
@@ -79,3 +96,7 @@ export type Course = {
   progress: number; // 0-100
 };
 
+
+export type CustomRecorder = {
+  stop: () => void;
+};

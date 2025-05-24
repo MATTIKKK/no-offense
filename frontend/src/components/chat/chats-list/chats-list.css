@@ -24,10 +24,15 @@
 
 .chats-list-title {
   display: flex;
+  gap: 5px;
   align-items: center;
   font-size: 20px;
   font-weight: bold;
   color: #1f2937;
+}
+.chats-list-actions {
+  display: flex;
+  gap: 5px;
 }
 
 .chat-title svg {

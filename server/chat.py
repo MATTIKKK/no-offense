@@ -1,11 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from models import Chat, Invite, Message, User
+from schemas import InviteResponse
 from schemas import InviteCreate, MessageIn
+from sqlalchemy import or_
+from schemas import ChatOut
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
+# Dependency для получения сессии БД
 def get_db():
     db = SessionLocal()
     try:
@@ -13,35 +18,77 @@ def get_db():
     finally:
         db.close()
 
+# 📩 Отправить инвайт пользователю
 @router.post("/invite")
-def send_invite(invite: InviteCreate, from_user_id: str, db: Session = Depends(get_db)):
+def send_invite(invite: InviteCreate, db: Session = Depends(get_db)):
     if not db.query(User).filter_by(id=invite.to_user_id).first():
         raise HTTPException(status_code=404, detail="User not found")
-    new_invite = Invite(from_user_id=from_user_id, to_user_id=invite.to_user_id,
-                        relationship=invite.relationship, status="pending")
+
+    new_invite = Invite(
+        from_user_id=invite.from_user_id,
+        to_user_id=invite.to_user_id,
+        relationship_type=invite.relationship_type,
+        label_for_partner=invite.label_for_partner,
+        status="pending"
+    )
     db.add(new_invite)
     db.commit()
     return {"status": "sent"}
 
-@router.post("/respond")
-def respond_invite(invite_id: int, accept: bool, db: Session = Depends(get_db)):
-    inv = db.query(Invite).filter_by(id=invite_id).first()
-    if not inv:
-        raise HTTPException(status_code=404, detail="Invite not found")
-    inv.status = "accepted" if accept else "rejected"
-    if accept:
-        new_chat = Chat(user1_id=inv.from_user_id, user2_id=inv.to_user_id)
-        db.add(new_chat)
-    db.commit()
-    return {"status": inv.status}
 
+
+@router.get("/invites/{user_id}")
+def get_user_invites(user_id: str, db: Session = Depends(get_db)):
+    invites = db.query(Invite).filter_by(to_user_id=user_id, status="pending").all()
+    return invites
+
+
+@router.post("/respond")
+def respond_invite(payload: InviteResponse, db: Session = Depends(get_db)):
+    invite = db.query(Invite).filter_by(id=payload.invite_id).first()
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invite not found")
+
+    invite.status = "accepted" if payload.accept else "rejected"
+
+    if payload.accept:
+        chat = Chat(user1_id=invite.from_user_id, user2_id=invite.to_user_id)
+        db.add(chat)
+        db.commit()
+        db.refresh(chat)
+        return {"status": "accepted", "chat_id": chat.id}
+
+    db.commit()
+    return {"status": "rejected"}
+
+
+# 💬 Отправить сообщение
 @router.post("/message")
 def send_message(msg: MessageIn, db: Session = Depends(get_db)):
-    m = Message(**msg.dict(), is_conflict=(msg.topic is not None))
-    db.add(m)
+    is_conflict = msg.topic is not None
+    message = Message(**msg.dict(), is_conflict=is_conflict)
+    db.add(message)
     db.commit()
-    if msg.topic:
-        similar = db.query(Message).filter_by(chat_id=msg.chat_id, topic=msg.topic).count()
-        if similar >= 3:
-            return {"alert": f"This topic '{msg.topic}' has come up multiple times."}
+
+    # Если это конфликтная тема — проверить на повторяемость
+    if is_conflict:
+        similar_count = db.query(Message).filter_by(chat_id=msg.chat_id, topic=msg.topic).count()
+        if similar_count >= 3:
+            return {
+                "status": "sent",
+                "alert": f"The topic '{msg.topic}' has been discussed {similar_count} times. Consider resolving it."
+            }
+
     return {"status": "sent"}
+
+
+@router.get("/chats/{user_id}", response_model=list[ChatOut])
+def get_user_chats(user_id: str, db: Session = Depends(get_db)):
+    chats = db.query(Chat).filter(
+        or_(Chat.user1_id == user_id, Chat.user2_id == user_id)
+    ).all()
+
+    if not chats:
+        return []
+
+    return chats

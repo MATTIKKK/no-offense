@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -10,26 +10,36 @@ import {
   ToggleLeft,
   ToggleRight,
 } from 'lucide-react';
-import { useAppStore } from '../../store';
 import './settings.css';
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
-  const currentUser = useAppStore((state) => state.currentUser);
-  const isAIModeratorEnabled = useAppStore(
-    (state) => state.isAIModeratorEnabled
-  );
-  const toggleAIModerator = useAppStore((state) => state.toggleAIModerator);
-  const logout = useAppStore((state) => state.logout);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; avatar?: string } | null>(null);
+  const [aiModerator, setAiModerator] = useState<boolean>(false);
 
-  if (!currentUser) {
-    navigate('/');
-    return null;
-  }
+  useEffect(() => {
+    const id = localStorage.getItem('userId');
+    const name = localStorage.getItem('userName');
+    const avatar = localStorage.getItem('userAvatar'); // optional
+    const aiState = localStorage.getItem('aiModerator') === 'true';
+
+    if (id && name) {
+      setCurrentUser({ id, name, avatar: avatar || undefined });
+      setAiModerator(aiState);
+    } else {
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  const toggleAIModerator = () => {
+    const newValue = !aiModerator;
+    setAiModerator(newValue);
+    localStorage.setItem('aiModerator', String(newValue));
+  };
 
   const handleLogout = () => {
-    logout();
-    navigate('/');
+    localStorage.clear();
+    navigate('/login');
   };
 
   const settings = [
@@ -63,6 +73,8 @@ const Settings: React.FC = () => {
     },
   ];
 
+  if (!currentUser) return null;
+
   return (
     <div className="settings-page">
       <header className="settings-header">
@@ -88,7 +100,7 @@ const Settings: React.FC = () => {
                 <span>{currentUser.name.charAt(0).toUpperCase()}</span>
               </div>
             )}
-            <div className='profile-text'>
+            <div className="profile-text">
               <h2 className="profile-name">{currentUser.name}</h2>
               <p className="profile-id">User ID: {currentUser.id}</p>
             </div>
@@ -99,7 +111,7 @@ const Settings: React.FC = () => {
           <div className="toggle-row">
             <span>AI Message Moderation</span>
             <button className="toggle-button" onClick={toggleAIModerator}>
-              {isAIModeratorEnabled ? (
+              {aiModerator ? (
                 <ToggleRight size={28} className="toggle-on" />
               ) : (
                 <ToggleLeft size={28} className="toggle-off" />

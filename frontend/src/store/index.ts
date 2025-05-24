@@ -1,16 +1,14 @@
 import { create } from 'zustand';
-import { 
-  User, 
-  SharedConnection, 
-  Conversation, 
-  Message, 
-  Conflict, 
-  Therapist, 
+import {
+  User,
+  SharedConnection,
+  Conversation,
+  Message,
+  Conflict,
+  Therapist,
   ReconciliationItem,
-  Course
+  Course,
 } from '../types';
-import { mockUsers, mockConnections, mockConversations, mockConflicts, 
-  mockTherapists, mockReconciliationItems, mockCourses } from './mockData';
 
 interface AppState {
   currentUser: User | null;
@@ -21,168 +19,147 @@ interface AppState {
   reconciliationItems: ReconciliationItem[];
   courses: Course[];
   isAIModeratorEnabled: boolean;
-  
-  // Auth actions
-  login: (userId: string) => void;
+
+  login: (user: User) => void;
   logout: () => void;
   createOrConnectSharedId: (sharedId: string, type: SharedConnection['type']) => Promise<boolean>;
-  
-  // Conversation actions
   sendMessage: (conversationId: string, content: string, skipAI: boolean) => void;
   getConversation: (id: string) => Conversation | undefined;
   getConversationsForUser: () => Conversation[];
-  
-  // Settings actions
   toggleAIModerator: () => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  currentUser: null,
-  connections: mockConnections,
-  conversations: mockConversations,
-  conflicts: mockConflicts,
-  therapists: mockTherapists,
-  reconciliationItems: mockReconciliationItems,
-  courses: mockCourses,
-  isAIModeratorEnabled: true,
-  
-  login: (userId: string) => {
-    const user = mockUsers.find(u => u.id === userId);
-    if (user) {
-      set({ currentUser: user });
-    }
+  currentUser: JSON.parse(localStorage.getItem('currentUser') || 'null'),
+  connections: JSON.parse(localStorage.getItem('connections') || '[]'),
+  conversations: JSON.parse(localStorage.getItem('conversations') || '[]'),
+  conflicts: JSON.parse(localStorage.getItem('conflicts') || '[]'),
+  therapists: JSON.parse(localStorage.getItem('therapists') || '[]'),
+  reconciliationItems: JSON.parse(localStorage.getItem('reconciliationItems') || '[]'),
+  courses: JSON.parse(localStorage.getItem('courses') || '[]'),
+  isAIModeratorEnabled: JSON.parse(localStorage.getItem('aiMod') || 'true'),
+
+  login: (user) => {
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    set({ currentUser: user });
   },
-  
+
   logout: () => {
+    localStorage.removeItem('currentUser');
     set({ currentUser: null });
   },
-  
-  createOrConnectSharedId: async (sharedId: string, type) => {
-    // In a real app, this would connect to an API
-    // For now, we'll simulate with a timeout
+
+  createOrConnectSharedId: async (sharedId, type) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        const existingConnection = get().connections.find(c => c.id === sharedId);
-        
-        if (existingConnection) {
-          // Connect to existing
-          const updatedConnections = get().connections.map(c => {
-            if (c.id === sharedId && get().currentUser) {
-              return {
-                ...c,
-                users: [...c.users, get().currentUser!]
-              };
-            }
-            return c;
-          });
-          set({ connections: updatedConnections });
-        } else if (get().currentUser) {
-          // Create new
-          const newConnection: SharedConnection = {
+        const state = get();
+        const existing = state.connections.find(c => c.id === sharedId);
+        const user = state.currentUser;
+        if (!user) return resolve(false);
+
+        if (existing) {
+          const updated = state.connections.map((c) =>
+            c.id === sharedId ? { ...c, users: [...c.users, user] } : c
+          );
+          localStorage.setItem('connections', JSON.stringify(updated));
+          set({ connections: updated });
+        } else {
+          const newConn: SharedConnection = {
             id: sharedId,
             type,
-            users: [get().currentUser!],
-            createdAt: new Date()
+            users: [user],
+            createdAt: new Date(),
           };
-          set({ connections: [...get().connections, newConnection] });
+          const updated = [...state.connections, newConn];
+          localStorage.setItem('connections', JSON.stringify(updated));
+          set({ connections: updated });
         }
-        
         resolve(true);
       }, 800);
     });
   },
-  
+
   sendMessage: (conversationId, content, skipAI) => {
-    if (!get().currentUser) return;
-    
+    const state = get();
+    const user = state.currentUser;
+    if (!user) return;
+
     let processedContent = content;
     let isAIModified = false;
-    
-    // If AI moderation is enabled and not skipped, process the message
-    if (get().isAIModeratorEnabled && !skipAI) {
-      // This is where we'd call an actual AI service
-      // For now, we'll do a simple mock replacement of aggressive language
+
+    if (state.isAIModeratorEnabled && !skipAI) {
       const aggressiveWords = ['stupid', 'hate', 'idiot', 'never', 'always'];
-      const hasAggressiveWords = aggressiveWords.some(word => 
-        content.toLowerCase().includes(word)
-      );
-      
-      if (hasAggressiveWords) {
-        // Mock AI processing - in a real app, this would use an AI API
+      const hasAggression = aggressiveWords.some(w => content.toLowerCase().includes(w));
+      if (hasAggression) {
         processedContent = content
-          .replace(/stupid/gi, "challenging")
-          .replace(/hate/gi, "strongly dislike")
-          .replace(/idiot/gi, "frustrating")
-          .replace(/never/gi, "rarely")
-          .replace(/always/gi, "often");
+          .replace(/stupid/gi, 'challenging')
+          .replace(/hate/gi, 'dislike')
+          .replace(/idiot/gi, 'frustrating')
+          .replace(/never/gi, 'rarely')
+          .replace(/always/gi, 'often');
         isAIModified = true;
       }
     }
-    
+
     const newMessage: Message = {
       id: Date.now().toString(),
-      senderId: get().currentUser!.id,
+      senderId: user.id,
       content: processedContent,
       originalContent: isAIModified ? content : undefined,
       timestamp: new Date(),
       status: 'sent',
-      isAIModified
+      isAIModified,
     };
-    
-    const updatedConversations = get().conversations.map(conv => {
-      if (conv.id === conversationId) {
-        // Check for conflict based on AI modification
-        let conflictStatus = conv.conflictStatus;
-        if (isAIModified && conflictStatus === 'none') {
-          conflictStatus = 'active';
-        }
-        
+
+    const updatedConversations = state.conversations.map((c) => {
+      if (c.id === conversationId) {
         return {
-          ...conv,
-          messages: [...conv.messages, newMessage],
+          ...c,
+          messages: [...c.messages, newMessage],
           lastMessageAt: new Date(),
-          conflictStatus
+          conflictStatus: isAIModified ? 'active' : c.conflictStatus,
         };
       }
-      return conv;
+      return c;
     });
-    
+
+    localStorage.setItem('conversations', JSON.stringify(updatedConversations));
     set({ conversations: updatedConversations });
-    
-    // If this message created a new conflict, track it
+
     const conversation = updatedConversations.find(c => c.id === conversationId);
     if (conversation?.conflictStatus === 'active' && isAIModified) {
-      const existingConflict = get().conflicts.find(
-        c => c.conversationId === conversationId && !c.resolvedAt
-      );
-      
-      if (!existingConflict) {
+      const existing = state.conflicts.find(c => c.conversationId === conversationId && !c.resolvedAt);
+      if (!existing) {
         const newConflict: Conflict = {
           id: Date.now().toString(),
           connectionId: conversation.connectionId,
           conversationId,
           startedAt: new Date(),
           tags: ['communication'],
-          isRecurring: false
+          isRecurring: false,
         };
-        
-        set({ conflicts: [...get().conflicts, newConflict] });
+        const updatedConflicts = [...state.conflicts, newConflict];
+        localStorage.setItem('conflicts', JSON.stringify(updatedConflicts));
+        set({ conflicts: updatedConflicts });
       }
     }
   },
-  
+
   getConversation: (id) => {
     return get().conversations.find(c => c.id === id);
   },
-  
+
   getConversationsForUser: () => {
-    if (!get().currentUser) return [];
-    return get().conversations.filter(conv => 
-      conv.participants.some(p => p.id === get().currentUser?.id)
+    const user = get().currentUser;
+    if (!user) return [];
+    return get().conversations.filter(c =>
+      c.participants.some(p => p.id === user.id)
     );
   },
-  
+
   toggleAIModerator: () => {
-    set({ isAIModeratorEnabled: !get().isAIModeratorEnabled });
-  }
+    const current = get().isAIModeratorEnabled;
+    localStorage.setItem('aiMod', JSON.stringify(!current));
+    set({ isAIModeratorEnabled: !current });
+  },
 }));

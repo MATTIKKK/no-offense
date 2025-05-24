@@ -15,20 +15,37 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import './chat-screen.css';
-import { useAppStore } from '../../../store';
-import { rephraseMessage } from '../../../services/rephraseMessage';
+import { rephraseMessage } from '../../../api/rephraseMessage';
+import { useAudioRecording } from '../../../utils/liveMicRecorder';
 
 const ChatScreen: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [isRecording, setIsRecording] = useState(false);
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
   const [skipAI, setSkipAI] = useState(false);
   const [showSuggestion, setShowSuggestion] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
+  const { recording, startRecording, stopRecording, getAudioBlob } = useAudioRecording();
 
-  const currentUser = useAppStore((state) => state.currentUser);
-  const conversation = useAppStore((state) => state.getConversation(id || ''));
-  const sendMessage = useAppStore((state) => state.sendMessage);
+  const [conversation, setConversation] = useState<any | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
+
+  useEffect(() => {
+    const userId = localStorage.getItem('userId');
+    const userName = localStorage.getItem('userName');
+    if (!userId || !userName) {
+      navigate('/login');
+      return;
+    }
+    setCurrentUser({ id: userId, name: userName });
+
+    // TODO: Replace with actual fetch
+    fetch(`/api/conversations/${id}`)
+      .then((res) => res.json())
+      .then((data) => setConversation(data))
+      .catch(() => navigate('/home'));
+  }, [id, navigate]);
 
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -38,42 +55,33 @@ const ChatScreen: React.FC = () => {
     }
   }, [conversation?.messages, conversation?.conflictStatus]);
 
-  if (!currentUser || !conversation) {
-    navigate('/home');
-    return null;
-  }
+  if (!currentUser || !conversation) return null;
 
-  const otherParticipant = conversation.participants.find(
-    (p) => p.id !== currentUser.id
-  );
-  if (!otherParticipant) {
-    navigate('/home');
-    return null;
-  }
+  const otherParticipant = conversation.participants.find((p: any) => p.id !== currentUser.id);
+  if (!otherParticipant) return null;
 
   const handleSendMessage = async () => {
     if (!message.trim() || !id) return;
-
     let finalMessage = message.trim();
-    let originalContent: string | undefined;
 
     if (!skipAI) {
       try {
         const aiMessage = await rephraseMessage(finalMessage);
-        console.log('[AI] Sending for rephrase:', finalMessage); 
-        if (aiMessage !== finalMessage) {
-          console.log('[AI] Got response:', aiMessage); 
-          originalContent = finalMessage;
-          finalMessage = aiMessage;
-        }
+        if (aiMessage !== finalMessage) finalMessage = aiMessage;
       } catch (e) {
         console.error('AI error, sending original:', e);
       }
     }
 
-    sendMessage(id, finalMessage, skipAI);
+    fetch(`/api/conversations/${id}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ senderId: currentUser.id, content: finalMessage }),
+    });
+
     setMessage('');
   };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -81,11 +89,35 @@ const ChatScreen: React.FC = () => {
     }
   };
 
-  const groupedMessages = conversation.messages.reduce((groups, msg) => {
+  const handleMicClick = async () => {
+    if (!recording) {
+      await startRecording();
+      setIsRecording(true);
+    } else {
+      stopRecording();
+      setIsRecording(false);
+      const audioBlob = await getAudioBlob();
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'voice.wav');
+
+      try {
+        const res = await fetch('http://localhost:8000/ai/stt', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        setMessage((prev) => prev + ' ' + data.text);
+      } catch (err) {
+        console.error('STT Error:', err);
+      }
+    }
+  };
+
+  const groupedMessages = conversation.messages.reduce((groups: any, msg: any) => {
     const date = format(new Date(msg.timestamp), 'yyyy-MM-dd');
     (groups[date] = groups[date] || []).push(msg);
     return groups;
-  }, {} as Record<string, typeof conversation.messages>);
+  }, {});
 
   const getStatusClass = () => {
     if (conversation.conflictStatus === 'active') return 'status-active';
@@ -97,25 +129,16 @@ const ChatScreen: React.FC = () => {
     <div className="chat-screen">
       <header className="chat-header">
         <div className="chat-header-left">
-          <button
-            className="chat-back-button"
-            onClick={() => navigate('/home')}
-          >
+          <button className="chat-back-button" onClick={() => navigate('/home')}>
             <ArrowLeft size={22} />
           </button>
-
           {otherParticipant.avatar ? (
-            <img
-              src={otherParticipant.avatar}
-              alt={otherParticipant.name}
-              className="chat-avatar"
-            />
+            <img src={otherParticipant.avatar} alt={otherParticipant.name} className="chat-avatar" />
           ) : (
             <div className="chat-avatar-fallback">
               {otherParticipant.name.charAt(0).toUpperCase()}
             </div>
           )}
-
           <div className="chat-header-info">
             <h2>{otherParticipant.name}</h2>
             <div className="chat-status">
@@ -130,45 +153,22 @@ const ChatScreen: React.FC = () => {
             </div>
           </div>
         </div>
-
-        <div className="chat-header-right">
-          <button className="chat-header-button">
-            <Phone size={20} />
-          </button>
-          <button className="chat-header-button">
-            <User size={20} />
-          </button>
-          <button className="chat-header-button">
-            <Pause size={20} />
-          </button>
-        </div>
       </header>
 
       <main className="chat-main">
         {Object.entries(groupedMessages).map(([date, messages]) => (
           <div key={date}>
-            <div className="chat-date-label">
-              {format(new Date(date), 'MMMM d, yyyy')}
-            </div>
-            {messages.map((msg) => {
+            <div className="chat-date-label">{format(new Date(date), 'MMMM d, yyyy')}</div>
+            {messages.map((msg: any) => {
               const isUser = msg.senderId === currentUser.id;
               return (
-                <div
-                  key={msg.id}
-                  className={`message-wrapper ${isUser ? 'user' : 'partner'}`}
-                >
+                <div key={msg.id} className={`message-wrapper ${isUser ? 'user' : 'partner'}`}>
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`message-bubble ${
-                      isUser ? 'message-user' : 'message-partner'
-                    }`}
+                    className={`message-bubble ${isUser ? 'message-user' : 'message-partner'}`}
                   >
-                    {msg.isAIModified && (
-                      <div className="message-ai-tag">
-                        AI rewrote this message
-                      </div>
-                    )}
+                    {msg.isAIModified && <div className="message-ai-tag">AI rewrote this message</div>}
                     <p>{msg.content}</p>
                     {msg.originalContent && (
                       <details className="message-original">
@@ -176,69 +176,13 @@ const ChatScreen: React.FC = () => {
                         <p>{msg.originalContent}</p>
                       </details>
                     )}
-                    <div className="message-time">
-                      {format(new Date(msg.timestamp), 'h:mm a')}
-                    </div>
+                    <div className="message-time">{format(new Date(msg.timestamp), 'h:mm a')}</div>
                   </motion.div>
                 </div>
               );
             })}
           </div>
         ))}
-
-        <AnimatePresence>
-          {showSuggestion && (
-            <motion.div
-              className="conflict-suggestion"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-            >
-              <div className="conflict-suggestion-inner">
-                <AlertCircle size={20} />
-                <div>
-                  <h3>This seems to be a recurring topic</h3>
-                  <p>
-                    A therapist could help navigate this discussion more
-                    effectively.
-                  </p>
-                  <div className="suggestion-actions">
-                    <button onClick={() => navigate('/therapists')}>
-                      Find a Therapist
-                    </button>
-                    <button onClick={() => setShowSuggestion(false)}>
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {conversation.conflictStatus === 'active' && (
-          <motion.div
-            className="reconciliation-block"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="reconciliation-inner">
-              <Heart size={20} />
-              <div>
-                <h3>Reconciliation suggestion</h3>
-                <p>
-                  Consider a gesture to help resolve this discussion positively.
-                </p>
-                <div className="reconciliation-actions">
-                  <button onClick={() => navigate('/reconciliation')}>
-                    View Options
-                  </button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
         <div ref={messageEndRef} />
       </main>
 
@@ -247,18 +191,13 @@ const ChatScreen: React.FC = () => {
           <div className="footer-toggle">
             <span>AI Rewording:</span>
             <button onClick={() => setSkipAI(!skipAI)}>
-              {skipAI ? (
-                <ToggleLeft size={22} />
-              ) : (
-                <ToggleRight size={22} className="toggle-active" />
-              )}
+              {skipAI ? <ToggleLeft size={22} /> : <ToggleRight size={22} className="toggle-active" />}
             </button>
           </div>
           <div className="footer-ai-hint">
             {skipAI ? 'Messages sent as-is' : 'AI helps reword messages'}
           </div>
         </div>
-
         <div className="footer-input-row">
           <textarea
             value={message}
@@ -268,14 +207,10 @@ const ChatScreen: React.FC = () => {
             className="footer-textarea"
             rows={1}
           />
-          <button className="footer-icon-btn">
+          <button className={`footer-icon-btn ${isRecording ? 'recording' : ''}`} onClick={handleMicClick}>
             <Mic size={22} />
           </button>
-          <button
-            className="footer-send-btn"
-            disabled={!message.trim()}
-            onClick={handleSendMessage}
-          >
+          <button className="footer-send-btn" disabled={!message.trim()} onClick={handleSendMessage}>
             <Send size={22} />
           </button>
         </div>
