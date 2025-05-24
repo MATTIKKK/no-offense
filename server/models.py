@@ -49,13 +49,14 @@ class Chat(Base):
 
 class Message(Base):
     __tablename__ = "messages"
-
-    id = Column(Integer, primary_key=True, index=True)
-    chat_id = Column(Integer, ForeignKey("chats.id"), nullable=False)
-    sender_id = Column(String, ForeignKey("users.id"), nullable=False)
-    content = Column(Text, nullable=False)
+    id = Column(Integer, primary_key=True)
+    chat_id = Column(Integer, ForeignKey("chats.id"))
+    sender_id = Column(String, ForeignKey("users.id"))
+    content = Column(Text)
+    timestamp = Column(DateTime, default=datetime.utcnow)  # 🕒 Обязательно
     topic = Column(String, nullable=True)
-    is_conflict = Column(Boolean, default=False)
+    is_ai_modified = Column(Boolean, default=False)
+    original_content = Column(Text, nullable=True)
 
     chat = relationship("Chat", back_populates="messages")
     sender = relationship("User", back_populates="sent_messages")

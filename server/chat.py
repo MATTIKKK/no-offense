@@ -1,11 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException,WebSocket, WebSocketDisconnect, APIRouter, Depends
+
 from sqlalchemy.orm import Session
+from collections import defaultdict
 from sqlalchemy import or_, and_
 from database import SessionLocal
 from models import Chat, Invite, Message, User
 from schemas import InviteResponse, InviteCreate, MessageIn, ChatOut, UserPublic
 from datetime import datetime
+import json
 
+active_connections = defaultdict(list)
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
 
@@ -154,3 +158,36 @@ def get_user_chat_by_id(user_id: str, chat_id: int, db: Session = Depends(get_db
         user1=UserPublic(id=user1.id, name=user1.name) if user1 else UserPublic(id="?", name="Unknown"),
         user2=UserPublic(id=user2.id, name=user2.name) if user2 else UserPublic(id="?", name="Unknown"),
     )
+
+@router.websocket("/ws/chat/{chat_id}")
+async def websocket_endpoint(websocket: WebSocket, chat_id: int, db: Session = Depends(get_db)):
+    await websocket.accept()
+    active_connections[chat_id].append(websocket)
+
+    try:
+        while True:
+            data = await websocket.receive_text()
+            data_dict = json.loads(data)
+
+            # Сохраняем сообщение в БД
+            msg = Message(
+                chat_id=chat_id,
+                sender_id=data_dict["sender_id"],
+                content=data_dict["content"],
+                timestamp=datetime.utcnow()
+            )
+            db.add(msg)
+            db.commit()
+            db.refresh(msg)
+
+            # Рассылаем всем в чате
+            for connection in active_connections[chat_id]:
+                await connection.send_text(json.dumps({
+                    "id": msg.id,
+                    "chat_id": chat_id,
+                    "sender_id": msg.sender_id,
+                    "content": msg.content,
+                    "timestamp": msg.timestamp.isoformat()
+                }))
+    except WebSocketDisconnect:
+        active_connections[chat_id].remove(websocket)
