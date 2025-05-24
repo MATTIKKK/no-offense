@@ -117,7 +117,7 @@ def send_message(msg: MessageIn, db: Session = Depends(get_db)):
     return {"status": "sent"}
 
 
-@router.get("/chats/{user_id}", response_model=list[ChatOut])
+@router.get("/chats/{user_id}")
 def get_user_chats(user_id: str, db: Session = Depends(get_db)):
     chats = db.query(Chat).filter(
         or_(Chat.user1_id == user_id, Chat.user2_id == user_id)
@@ -127,17 +127,65 @@ def get_user_chats(user_id: str, db: Session = Depends(get_db)):
     for chat in chats:
         user1 = db.query(User).filter_by(id=chat.user1_id).first()
         user2 = db.query(User).filter_by(id=chat.user2_id).first()
-        result.append(ChatOut(
-            id=chat.id,
-            created_at=chat.created_at,
-            user1=UserPublic(id=user1.id, name=user1.name) if user1 else UserPublic(id="?", name="Unknown"),
-            user2=UserPublic(id=user2.id, name=user2.name) if user2 else UserPublic(id="?", name="Unknown"),
-        ))
+        last_message = (
+            db.query(Message)
+            .filter_by(chat_id=chat.id)
+            .order_by(Message.timestamp.desc())
+            .first()
+        )
+
+        result.append({
+            "id": chat.id,
+            "created_at": chat.created_at,
+            "user1": {"id": user1.id, "name": user1.name} if user1 else {"id": "?", "name": "Unknown"},
+            "user2": {"id": user2.id, "name": user2.name} if user2 else {"id": "?", "name": "Unknown"},
+            "last_message": {
+                "content": last_message.content,
+                "timestamp": last_message.timestamp.isoformat(),
+            } if last_message else None
+        })
     return result
 
 
-@router.get("/chats/{user_id}/chat/{chat_id}", response_model=ChatOut)
+
+@router.get("/chats/{user_id}/chat/{chat_id}")
 def get_user_chat_by_id(user_id: str, chat_id: int, db: Session = Depends(get_db)):
+    chat = db.query(Chat).filter(
+        Chat.id == chat_id,
+        or_(
+            Chat.user1_id == user_id,
+            Chat.user2_id == user_id
+        )
+    ).first()
+
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found or access denied")
+
+    user1 = db.query(User).filter_by(id=chat.user1_id).first()
+    user2 = db.query(User).filter_by(id=chat.user2_id).first()
+
+    messages = db.query(Message).filter_by(chat_id=chat.id).order_by(Message.timestamp).all()
+
+    return {
+        "id": chat.id,
+        "created_at": chat.created_at,
+        "user1": {"id": user1.id, "name": user1.name} if user1 else {"id": "?", "name": "Unknown"},
+        "user2": {"id": user2.id, "name": user2.name} if user2 else {"id": "?", "name": "Unknown"},
+        "conflict_status": chat.status if hasattr(chat, "status") else "resolved",  # если есть
+        "messages": [
+            {
+                "id": m.id,
+                "chat_id": m.chat_id,
+                "sender_id": m.sender_id,
+                "content": m.content,
+                "timestamp": m.timestamp.isoformat(),
+                "is_ai_modified": m.is_ai_modified,
+                "original_content": m.original_content,
+            }
+            for m in messages
+        ]
+    }
+
     chat = db.query(Chat).filter(
         Chat.id == chat_id,
         or_(

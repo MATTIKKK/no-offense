@@ -5,6 +5,7 @@ from auth import router as auth_router
 from chat import router as chat_router
 from specialists import router as specialists_router
 from websocket import websocket_endpoint
+from models import Message, Chat, User
 
 from rephrase import router as ai_router
 

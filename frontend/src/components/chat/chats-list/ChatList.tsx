@@ -14,6 +14,10 @@ interface Chat {
   created_at: string;
   user1: User;
   user2: User;
+  last_message?: {
+    content: string;
+    timestamp: string;
+  } | null;
 }
 
 const ChatsList: React.FC = () => {
@@ -36,7 +40,9 @@ const ChatsList: React.FC = () => {
 
     const fetchConversations = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/chat/chats/${currentUser.id}`);
+        const res = await fetch(
+          `http://localhost:8000/chat/chats/${currentUser.id}`
+        );
         const data = await res.json();
         setConversations(data);
       } catch (err) {
@@ -56,10 +62,16 @@ const ChatsList: React.FC = () => {
             noOffense
           </div>
           <div className="chats-list-actions">
-            <button onClick={() => navigate('/notifications')} className="chats-list-action-btn">
+            <button
+              onClick={() => navigate('/notifications')}
+              className="chats-list-action-btn"
+            >
               <Bell size={22} />
             </button>
-            <button onClick={() => navigate('/settings')} className="chats-list-action-btn">
+            <button
+              onClick={() => navigate('/settings')}
+              className="chats-list-action-btn"
+            >
               <Settings size={22} />
             </button>
           </div>
@@ -80,7 +92,9 @@ const ChatsList: React.FC = () => {
             <div className="chat-empty">
               <Users size={40} className="chat-empty-icon" />
               <p>No connections yet</p>
-              <p className="text-sm">Create a Shared ID to connect with someone</p>
+              <p className="text-sm">
+                Create a Shared ID to connect with someone
+              </p>
             </div>
           ) : (
             conversations.map((chat) => {
@@ -112,12 +126,20 @@ const ChatsList: React.FC = () => {
                       </div>
 
                       <span className="text-xs text-neutral-500">
-                        {new Date(chat.created_at).toLocaleDateString()}
+                        {chat.last_message
+                          ? new Date(
+                              chat.last_message.timestamp
+                            ).toLocaleDateString()
+                          : new Date(chat.created_at).toLocaleDateString()}
                       </span>
                     </div>
 
                     <p className="chat-last-message text-sm text-neutral-500 italic">
-                      No messages yet
+                      {chat.last_message
+                        ? chat.last_message.content.length > 50
+                          ? chat.last_message.content.slice(0, 50) + '...'
+                          : chat.last_message.content
+                        : 'No messages yet'}
                     </p>
                   </div>
                 </motion.div>

@@ -43,14 +43,16 @@ const ChatScreen: React.FC = () => {
   }, [id, navigate]);
 
   useEffect(() => {
-    if (!id || !currentUser) return;
+    if (!id || !currentUser?.id) return;
 
+    console.log('Creating WebSocket for chat ID:', id);
     const socket = new WebSocket(`ws://localhost:8000/ws/chat/${id}`);
     ws.current = socket;
 
     socket.onopen = () => console.log('WebSocket connected');
     socket.onmessage = (event) => {
       const msg = JSON.parse(event.data);
+      console.log('Received message:', msg);
       setConversation((prev: any) => ({
         ...prev,
         messages: [...(prev?.messages || []), msg],
@@ -59,22 +61,45 @@ const ChatScreen: React.FC = () => {
     socket.onclose = () => console.log('WebSocket closed');
     socket.onerror = (e) => console.error('WebSocket error:', e);
 
-    return () => socket.close();
-  }, [id, currentUser]);
+    return () => {
+      socket.close();
+      console.log('WebSocket disconnected');
+    };
+  }, [id, currentUser?.id]);
 
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversation?.messages]);
 
   const handleSendMessage = async () => {
-    if (!message.trim() || !id || !currentUser || !ws.current) return;
+    if (!message.trim()) {
+      console.warn('Message is empty');
+      return;
+    }
+
+    if (!id || !currentUser || !ws.current) {
+      console.warn('Missing required data', {
+        id,
+        currentUser,
+        ws: ws.current,
+      });
+      return;
+    }
+
+    if (ws.current.readyState !== WebSocket.OPEN) {
+      console.warn('WebSocket is not open:', ws.current.readyState);
+      return;
+    }
 
     let finalMessage = message.trim();
 
     if (!skipAI) {
       try {
         const aiMessage = await rephraseMessage(finalMessage);
-        if (aiMessage !== finalMessage) finalMessage = aiMessage;
+        if (aiMessage !== finalMessage) {
+          console.log('AI rephrased message:', aiMessage);
+          finalMessage = aiMessage;
+        }
       } catch (e) {
         console.error('AI error:', e);
       }
@@ -88,9 +113,12 @@ const ChatScreen: React.FC = () => {
       is_ai_modified: !skipAI,
     };
 
-    if (ws.current.readyState === WebSocket.OPEN) {
+    try {
       ws.current.send(JSON.stringify(outgoingMessage));
+      console.log('Sent message:', outgoingMessage);
       setMessage('');
+    } catch (err) {
+      console.error('Error sending WebSocket message:', err);
     }
   };
 
