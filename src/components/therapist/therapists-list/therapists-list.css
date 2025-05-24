@@ -1,0 +1,238 @@
+/* Container */
+.therapists-page {
+  min-height: 100vh;
+  background-color: #f9fafb;
+  font-family: 'Arial', sans-serif;
+  padding-top: 70px; 
+}
+
+.therapists-header {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background-color: #f1fef9;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+}
+
+.therapists-header-inner {
+  max-width: 1024px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.back-button {
+  padding: 6px;
+  margin-right: 12px;
+  border-radius: 9999px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.back-button:hover {
+  background-color: #f3f4f6;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: bold;
+  color: #1f2937;
+}
+
+/* Main */
+.therapists-main {
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* Filter Box */
+.filter-box {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.specialty-filter {
+  margin-top: 12px;
+}
+
+.specialty-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.specialty-title svg {
+  margin-right: 6px;
+}
+
+.specialty-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.specialty-tag {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 14px;
+  border: 1px solid #e5e7eb;
+  background-color: #f3f4f6;
+  color: #374151;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.specialty-tag:hover {
+  background-color: #e5e7eb;
+}
+
+.specialty-tag.active {
+  background-color: #d1fae5;
+  border-color: #6ee7b7;
+  color: #047857;
+}
+
+/* Card List */
+.therapist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Card */
+.therapist-card {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.therapist-card:hover {
+  transform: translateY(-2px);
+}
+
+.therapist-card-content {
+  padding: 16px;
+}
+
+.therapist-top {
+  display: flex;
+}
+
+.therapist-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 9999px;
+  overflow: hidden;
+  margin-right: 16px;
+}
+
+.therapist-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.therapist-info {
+  flex: 1;
+}
+
+.therapist-name-rating {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.therapist-name {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.therapist-rating {
+  display: flex;
+  align-items: center;
+  color: #facc15;
+  font-size: 14px;
+}
+
+.therapist-location {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 6px;
+}
+
+.therapist-location svg {
+  margin-right: 4px;
+}
+
+.therapist-specialties {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.therapist-specialties span {
+  background-color: #ecfdf5;
+  color: #047857;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+/* Description */
+.therapist-description {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.4;
+  max-height: 2.8em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* View Profile */
+.view-profile {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.view-profile button {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  color: #059669;
+  cursor: pointer;
+}
+
+.view-profile button:hover {
+  text-decoration: underline;
+}
+
+/* Empty State */
+.empty-state {
+  background-color: white;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  color: #6b7280;
+}
+
+.empty-state svg {
+  color: #d1d5db;
+  margin-bottom: 12px;
+}

@@ -1,0 +1,278 @@
+.conflict-page {
+  min-height: 100vh;
+  background-color: #f9fafb;
+  font-family: Arial, sans-serif;
+  padding-top: 70px; 
+}
+
+.conflict-header {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background-color: #f1fef9;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.conflict-header-inner {
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.back-button {
+  padding: 6px;
+  margin-right: 12px;
+  border-radius: 9999px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.back-button:hover {
+  background-color: #f3f4f6;
+}
+
+.conflict-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.conflict-main {
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.conflict-section {
+  margin-bottom: 24px;
+}
+
+.conflict-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.conflict-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.conflict-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.filter-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-button {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 9999px;
+  background-color: #e5e7eb;
+  color: #4b5563;
+  border: none;
+  cursor: pointer;
+}
+
+.filter-button:hover {
+  background-color: #d1d5db;
+}
+
+.filter-default {
+  background-color: #e5e7eb;
+  color: #4b5563;
+}
+
+.tag-communication {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.tag-money {
+  background-color: #ecfccb;
+  color: #365314;
+}
+
+.tag-planning {
+  background-color: #e0e7ff;
+  color: #3730a3;
+}
+
+.tag-priorities {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.tag-default {
+  background-color: #f3f4f6;
+  color: #1f2937;
+}
+
+.conflict-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.conflict-empty {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  padding: 24px;
+  text-align: center;
+}
+
+.empty-icon {
+  margin-bottom: 12px;
+  color: #16a34a;
+}
+
+.empty-message {
+  font-size: 16px;
+  color: #4b5563;
+}
+
+.empty-sub {
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.conflict-card {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.conflict-card:hover {
+  transform: translateY(-2px);
+}
+
+.conflict-card-body {
+  padding: 16px;
+}
+
+.conflict-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 12px;
+}
+
+.conflict-status {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.status-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-icon.resolved {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.status-icon.unresolved {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.conflict-topic {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1f2937;
+  margin: 0;
+}
+
+.conflict-date {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #6b7280;
+}
+
+.resolved-label {
+  margin-left: 8px;
+  font-weight: 500;
+  color: #15803d;
+}
+
+.recurring-badge {
+  background-color: #fef3c7;
+  color: #92400e;
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 9999px;
+}
+
+.conflict-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tag {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 9999px;
+  font-weight: 500;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .conflict-header-inner,
+  .conflict-main {
+    padding: 12px;
+  }
+
+  .conflict-title {
+    font-size: 18px;
+  }
+
+  .conflict-subtitle {
+    font-size: 16px;
+  }
+
+  .filter-button {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .conflict-topic {
+    font-size: 15px;
+  }
+
+  .conflict-date {
+    font-size: 12px;
+  }
+}
