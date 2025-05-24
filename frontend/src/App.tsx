@@ -64,6 +64,15 @@ function App() {
     return <>{children}</>;
   };
 
+  useEffect(() => {
+    const publicRoutes = ['/', '/login', '/register'];
+    const token = localStorage.getItem('token');
+
+    if (currentUser && token && publicRoutes.includes(location.pathname)) {
+      navigate('/home', { replace: true });
+    }
+  }, [currentUser, location.pathname, navigate]);
+
   return (
     <div
       className="font-sans"

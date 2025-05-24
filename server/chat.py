@@ -52,11 +52,21 @@ def respond_invite(payload: InviteResponse, db: Session = Depends(get_db)):
     invite.status = "accepted" if payload.accept else "rejected"
 
     if payload.accept:
-        chat = Chat(user1_id=invite.from_user_id, user2_id=invite.to_user_id)
-        db.add(chat)
-        db.commit()
-        db.refresh(chat)
-        return {"status": "accepted", "chat_id": chat.id}
+        existing_chat = db.query(Chat).filter(
+            or_(
+                (Chat.user1_id == invite.from_user_id) & (Chat.user2_id == invite.to_user_id),
+                (Chat.user1_id == invite.to_user_id) & (Chat.user2_id == invite.from_user_id)
+            )
+        ).first()
+
+        if not existing_chat:
+            chat = Chat(user1_id=invite.from_user_id, user2_id=invite.to_user_id)
+            db.add(chat)
+            db.commit()
+            db.refresh(chat)
+            return {"status": "accepted", "chat_id": chat.id}
+        else:
+            return {"status": "accepted", "chat_id": existing_chat.id}
 
     db.commit()
     return {"status": "rejected"}

@@ -4,12 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Input from '../../ui/Input';
 import Button from '../../ui/button/Button';
 import './login.css';
-import { loginUser } from '../../../api/auth';
-
-type LoginResponse = {
-  id: string;
-  name: string;
-};
+import { loginUser, getCurrentUser } from '../../../api/auth';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -23,10 +18,12 @@ const Login: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const res: LoginResponse = await loginUser({ email, password });
+      await loginUser({ email, password });
 
-      localStorage.setItem('userId', res.id);
-      localStorage.setItem('userName', res.name);
+      const user = await getCurrentUser();
+
+      localStorage.setItem('userId', user.id);
+      localStorage.setItem('userName', user.name);
 
       navigate('/home');
     } catch (err: unknown) {

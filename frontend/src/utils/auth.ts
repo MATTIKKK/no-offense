@@ -5,14 +5,6 @@ type LoginPayload = {
   password: string;
 };
 
-
-type RegisterPayload = {
-  name: string;
-  email: string;
-  password: string;
-};
-
-
 export const loginUser = async (payload: LoginPayload): Promise<string> => {
   const res = await fetch(`${API_URL}/auth/login`, {
     method: 'POST',
@@ -56,9 +48,6 @@ export const getCurrentUser = async () => {
 
   return await res.json(); // { id, name }
 };
-
-
-
 export const registerUser = async (payload: RegisterPayload) => {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: 'POST',
