@@ -12,7 +12,7 @@ import {
   AlertCircle,
   Heart,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import './chat-screen.css';
 import { rephraseMessage } from '../../../api/rephraseMessage';
@@ -24,7 +24,6 @@ const ChatScreen: React.FC = () => {
   const navigate = useNavigate();
   const [message, setMessage] = useState('');
   const [skipAI, setSkipAI] = useState(false);
-  const [showSuggestion, setShowSuggestion] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const { recording, startRecording, stopRecording, getAudioBlob } = useAudioRecording();
 
@@ -40,28 +39,26 @@ const ChatScreen: React.FC = () => {
     }
     setCurrentUser({ id: userId, name: userName });
 
-    // TODO: Replace with actual fetch
-    fetch(`/api/conversations/${id}`)
-      .then((res) => res.json())
+    fetch(`http://localhost:8000/chat/chats/${userId}/chat/${id}`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Not found');
+        return res.json();
+      })
       .then((data) => setConversation(data))
       .catch(() => navigate('/home'));
   }, [id, navigate]);
 
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    if (conversation?.conflictStatus === 'active') {
-      const timer = setTimeout(() => setShowSuggestion(true), 1500);
-      return () => clearTimeout(timer);
-    }
-  }, [conversation?.messages, conversation?.conflictStatus]);
+  }, [conversation?.messages]);
 
   if (!currentUser || !conversation) return null;
 
-  const otherParticipant = conversation.participants.find((p: any) => p.id !== currentUser.id);
-  if (!otherParticipant) return null;
+  const otherParticipant =
+    currentUser.id === conversation.user1.id ? conversation.user2 : conversation.user1;
 
   const handleSendMessage = async () => {
-    if (!message.trim() || !id) return;
+    if (!message.trim() || !id || !currentUser) return;
     let finalMessage = message.trim();
 
     if (!skipAI) {
@@ -73,10 +70,14 @@ const ChatScreen: React.FC = () => {
       }
     }
 
-    fetch(`/api/conversations/${id}/messages`, {
+    await fetch(`http://localhost:8000/chat/message`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ senderId: currentUser.id, content: finalMessage }),
+      body: JSON.stringify({
+        sender_id: currentUser.id,
+        chat_id: Number(id),
+        content: finalMessage,
+      }),
     });
 
     setMessage('');
@@ -113,15 +114,15 @@ const ChatScreen: React.FC = () => {
     }
   };
 
-  const groupedMessages = conversation.messages.reduce((groups: any, msg: any) => {
+  const groupedMessages = (conversation.messages || []).reduce((groups: any, msg: any) => {
     const date = format(new Date(msg.timestamp), 'yyyy-MM-dd');
     (groups[date] = groups[date] || []).push(msg);
     return groups;
   }, {});
 
   const getStatusClass = () => {
-    if (conversation.conflictStatus === 'active') return 'status-active';
-    if (conversation.conflictStatus === 'paused') return 'status-paused';
+    if (conversation.conflict_status === 'active') return 'status-active';
+    if (conversation.conflict_status === 'paused') return 'status-paused';
     return 'status-resolved';
   };
 
@@ -132,21 +133,17 @@ const ChatScreen: React.FC = () => {
           <button className="chat-back-button" onClick={() => navigate('/home')}>
             <ArrowLeft size={22} />
           </button>
-          {otherParticipant.avatar ? (
-            <img src={otherParticipant.avatar} alt={otherParticipant.name} className="chat-avatar" />
-          ) : (
-            <div className="chat-avatar-fallback">
-              {otherParticipant.name.charAt(0).toUpperCase()}
-            </div>
-          )}
+          <div className="chat-avatar-fallback">
+            {otherParticipant.name.charAt(0).toUpperCase()}
+          </div>
           <div className="chat-header-info">
             <h2>{otherParticipant.name}</h2>
             <div className="chat-status">
               <span className={`chat-status-indicator ${getStatusClass()}`} />
               <span>
-                {conversation.conflictStatus === 'active'
+                {conversation.conflict_status === 'active'
                   ? 'Active discussion'
-                  : conversation.conflictStatus === 'paused'
+                  : conversation.conflict_status === 'paused'
                   ? 'Paused'
                   : 'Online'}
               </span>
@@ -156,11 +153,11 @@ const ChatScreen: React.FC = () => {
       </header>
 
       <main className="chat-main">
-        {Object.entries(groupedMessages).map(([date, messages]) => (
+        {Object.entries(groupedMessages).map(([date, messages]: any) => (
           <div key={date}>
             <div className="chat-date-label">{format(new Date(date), 'MMMM d, yyyy')}</div>
             {messages.map((msg: any) => {
-              const isUser = msg.senderId === currentUser.id;
+              const isUser = msg.sender_id === currentUser.id;
               return (
                 <div key={msg.id} className={`message-wrapper ${isUser ? 'user' : 'partner'}`}>
                   <motion.div
@@ -168,12 +165,12 @@ const ChatScreen: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className={`message-bubble ${isUser ? 'message-user' : 'message-partner'}`}
                   >
-                    {msg.isAIModified && <div className="message-ai-tag">AI rewrote this message</div>}
+                    {msg.is_ai_modified && <div className="message-ai-tag">AI rewrote this message</div>}
                     <p>{msg.content}</p>
-                    {msg.originalContent && (
+                    {msg.original_content && (
                       <details className="message-original">
                         <summary>Show original message</summary>
-                        <p>{msg.originalContent}</p>
+                        <p>{msg.original_content}</p>
                       </details>
                     )}
                     <div className="message-time">{format(new Date(msg.timestamp), 'h:mm a')}</div>

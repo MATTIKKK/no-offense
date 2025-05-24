@@ -224,14 +224,7 @@
   .profile-placeholder {
     margin-bottom: 0.75rem;
   }
-  .toggle-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .setting-item {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+
   .setting-arrow {
     margin-top: 0.5rem;
   }

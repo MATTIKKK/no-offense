@@ -45,17 +45,17 @@ function App() {
   }, [location.pathname]); // обновляем, когда меняется путь
 
   // Слушаем long-press для SOS
-  let pressTimer: NodeJS.Timeout | null = null;
+  // let pressTimer: NodeJS.Timeout | null = null;
 
-  const handleMouseDown = () => {
-    pressTimer = setTimeout(() => {
-      navigate('/emergency');
-    }, 1000);
-  };
+  // const handleMouseDown = () => {
+  //   pressTimer = setTimeout(() => {
+  //     navigate('/emergency');
+  //   }, 1000);
+  // };
 
-  const handleMouseUp = () => {
-    if (pressTimer) clearTimeout(pressTimer);
-  };
+  // const handleMouseUp = () => {
+  //   if (pressTimer) clearTimeout(pressTimer);
+  // };
 
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (!currentUser) {
@@ -76,10 +76,10 @@ function App() {
   return (
     <div
       className="font-sans"
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onTouchStart={handleMouseDown}
-      onTouchEnd={handleMouseUp}
+      // onMouseDown={handleMouseDown}
+      // onMouseUp={handleMouseUp}
+      // onTouchStart={handleMouseDown}
+      // onTouchEnd={handleMouseUp}
     >
       <Routes>
         {/* Public */}

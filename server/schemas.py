@@ -2,14 +2,22 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 
+
+class UserPublic(BaseModel):
+    id: str
+    name: str
+
+    class Config:
+        orm_mode = True
+
 class ChatOut(BaseModel):
     id: int
-    user1_id: str
-    user2_id: str
+    user1: UserPublic
+    user2: UserPublic
     created_at: datetime
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class TokenResponse(BaseModel):
     access_token: str

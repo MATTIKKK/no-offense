@@ -2,16 +2,24 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, Users, Settings, PlusCircle, Bell } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 import './chats-list.css';
+
+interface User {
+  id: string;
+  name: string;
+}
+
+interface Chat {
+  id: number;
+  created_at: string;
+  user1: User;
+  user2: User;
+}
 
 const ChatsList: React.FC = () => {
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
-  const [conversations, setConversations] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [conversations, setConversations] = useState<Chat[]>([]);
 
   useEffect(() => {
     const id = localStorage.getItem('userId');
@@ -24,33 +32,20 @@ const ChatsList: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (!currentUser?.id) return;
+
     const fetchConversations = async () => {
       try {
-        const res = await fetch(
-          `http://localhost:8000/chat/chats/${currentUser?.id}`
-        );
+        const res = await fetch(`http://localhost:8000/chat/chats/${currentUser.id}`);
         const data = await res.json();
-        console.log('Conversations:', data);
+        setConversations(data);
       } catch (err) {
         console.error('Failed to load conversations:', err);
       }
     };
 
     fetchConversations();
-  }, []);
-
-  const getConflictStatusClass = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'status-active';
-      case 'paused':
-        return 'status-paused';
-      case 'resolved':
-        return 'status-resolved';
-      default:
-        return 'status-default';
-    }
-  };
+  }, [currentUser?.id]);
 
   return (
     <div className="chat-list-container">
@@ -61,18 +56,10 @@ const ChatsList: React.FC = () => {
             noOffense
           </div>
           <div className="chats-list-actions">
-            <button
-              className="chats-list-action-btn"
-              onClick={() => navigate('/notifications')}
-              aria-label="Notifications"
-            >
+            <button onClick={() => navigate('/notifications')} className="chats-list-action-btn">
               <Bell size={22} />
             </button>
-            <button
-              className="chats-list-action-btn"
-              onClick={() => navigate('/settings')}
-              aria-label="Open settings"
-            >
+            <button onClick={() => navigate('/settings')} className="chats-list-action-btn">
               <Settings size={22} />
             </button>
           </div>
@@ -93,92 +80,45 @@ const ChatsList: React.FC = () => {
             <div className="chat-empty">
               <Users size={40} className="chat-empty-icon" />
               <p>No connections yet</p>
-              <p className="text-sm">
-                Create a Shared ID to connect with someone
-              </p>
+              <p className="text-sm">Create a Shared ID to connect with someone</p>
             </div>
           ) : (
-            conversations.map((conversation) => {
-              const otherParticipant = conversation.participants.find(
-                (p: any) => p.id !== currentUser?.id
-              );
-              if (!otherParticipant) return null;
-
-              const lastMessage =
-                conversation.messages[conversation.messages.length - 1];
+            conversations.map((chat) => {
+              const other =
+                currentUser?.id === chat.user1.id ? chat.user2 : chat.user1;
 
               return (
                 <motion.div
-                  key={conversation.id}
+                  key={chat.id}
                   className="chat-card"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  whileHover={{
-                    y: -2,
-                    transition: { duration: 0.2 },
-                  }}
-                  onClick={() => navigate(`/chat/${conversation.id}`)}
+                  whileHover={{ y: -2, transition: { duration: 0.2 } }}
+                  onClick={() => navigate(`/chat/${chat.id}`)}
                 >
                   <div className="chat-card-inner">
                     <div className="chat-user-row">
                       <div className="chat-user-left">
-                        {otherParticipant.avatar ? (
-                          <img
-                            src={otherParticipant.avatar}
-                            alt={otherParticipant.name}
-                            className="chat-avatar"
-                          />
-                        ) : (
-                          <div className="chat-avatar-fallback">
-                            {otherParticipant.name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
+                        <div className="chat-avatar-fallback">
+                          {other.name.charAt(0).toUpperCase()}
+                        </div>
                         <div className="chat-user-info">
-                          <h3>{otherParticipant.name}</h3>
+                          <h3>{other.name}</h3>
                           <div className="chat-status">
-                            <span
-                              className={`chat-status-indicator ${getConflictStatusClass(
-                                conversation.conflictStatus
-                              )}`}
-                            />
-                            <span>
-                              {conversation.conflictStatus === 'active'
-                                ? 'Active discussion'
-                                : conversation.conflictStatus === 'paused'
-                                ? 'Paused'
-                                : conversation.conflictStatus === 'resolved'
-                                ? 'Resolved'
-                                : 'No conflicts'}
-                            </span>
+                            <span className="chat-status-indicator status-default" />
+                            <span>Connected</span>
                           </div>
                         </div>
                       </div>
-                      {lastMessage && (
-                        <span className="text-xs text-neutral-500">
-                          {formatDistanceToNow(
-                            new Date(lastMessage.timestamp),
-                            {
-                              addSuffix: true,
-                            }
-                          )}
-                        </span>
-                      )}
+
+                      <span className="text-xs text-neutral-500">
+                        {new Date(chat.created_at).toLocaleDateString()}
+                      </span>
                     </div>
 
-                    {lastMessage && (
-                      <p className="chat-last-message">
-                        {lastMessage.senderId === currentUser?.id
-                          ? 'You: '
-                          : ''}
-                        {lastMessage.content}
-                      </p>
-                    )}
-
-                    {conversation.conflictTopic && (
-                      <div className="chat-topic">
-                        <span>Topic: {conversation.conflictTopic}</span>
-                      </div>
-                    )}
+                    <p className="chat-last-message text-sm text-neutral-500 italic">
+                      No messages yet
+                    </p>
                   </div>
                 </motion.div>
               );
