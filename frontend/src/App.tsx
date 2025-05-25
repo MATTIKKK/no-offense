@@ -6,11 +6,6 @@ import {
   useNavigate,
   useLocation,
 } from 'react-router-dom';
-import SpeechRecognition, {
-  useSpeechRecognition,
-} from 'react-speech-recognition';
-
-// Auth Screens
 import WelcomeScreen from './components/auth/welcome-screen/WelcomeScreen';
 import CreateSharedID from './components/auth/create-shared-id/CreateSharedID';
 import Register from './components/auth/register/Register';

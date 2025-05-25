@@ -38,7 +38,7 @@ const ChatScreen: React.FC = () => {
 
   useEffect(() => {
     if (!id || !currentUser?.id) return;
-    const socket = new WebSocket(`ws://localhost:8000/ws/chat/${id}`);
+    const socket = new WebSocket(`wss://no-offense-1.onrender.com/ws/chat/${id}`);
     ws.current = socket;
 
     socket.onopen = () => console.log('WebSocket connected');
