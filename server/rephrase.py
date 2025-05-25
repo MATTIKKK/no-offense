@@ -1,12 +1,10 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File
-import whisper
 import tempfile
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
 import requests
 
-whisper_model = whisper.load_model("base") 
 
 load_dotenv()
 router = APIRouter(prefix="/ai", tags=["AI"])
