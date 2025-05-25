@@ -10,6 +10,7 @@
   position: fixed;
   top: 0;
   width: 100%;
+  z-index: 2;
   background-color: #f1fef9;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   padding: 12px 16px;

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, XCircle, CheckCircle, Users, ArrowLeft } from 'lucide-react';
 import './notifications.css';
+import { API_URL } from '../../config';
 
 interface Invite {
   id: number;
@@ -31,7 +32,7 @@ const Notifications: React.FC = () => {
 
     const fetchInvites = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/chat/invites/${userId}`);
+        const res = await fetch(`${API_URL}/chat/invites/${userId}`);
         if (!res.ok) throw new Error('Failed to load invites');
         const data = await res.json();
         setInvites(Array.isArray(data) ? data : []);
@@ -46,7 +47,7 @@ const Notifications: React.FC = () => {
 
   const respond = async (inviteId: number, accept: boolean) => {
     try {
-      const res = await fetch(`http://localhost:8000/chat/respond`, {
+      const res = await fetch(`${API_URL}/chat/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ invite_id: inviteId, accept }),

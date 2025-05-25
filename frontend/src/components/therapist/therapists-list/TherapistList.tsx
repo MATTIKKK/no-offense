@@ -35,7 +35,8 @@ const TherapistsList: React.FC = () => {
   const navigate = useNavigate();
   const [therapists, setTherapists] = useState<Therapist[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSpecialty, setSelectedSpecialty] = useState<TherapistSpecialty | null>(null);
+  const [selectedSpecialty, setSelectedSpecialty] =
+    useState<TherapistSpecialty | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem('therapists');
@@ -55,6 +56,55 @@ const TherapistsList: React.FC = () => {
 
     return matchesSearch && matchesSpecialty;
   });
+
+  useEffect(() => {
+    const stored = localStorage.getItem('therapists');
+    if (!stored) {
+      const exampleTherapists: Therapist[] = [
+        {
+          id: 'T001',
+          name: 'Dr. Aisulu K.',
+          city: 'Almaty',
+          avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+          rating: 4.8,
+          specialties: ['relationships', 'conflict'],
+          education: 'Ph.D. in Psychology, KazNU',
+        },
+        {
+          id: 'T002',
+          name: 'Nursultan B.',
+          city: 'Astana',
+          avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+          rating: 4.6,
+          specialties: ['communication', 'general'],
+          education: 'MSc in Counseling, Nazarbayev University',
+        },
+        {
+          id: 'T003',
+          name: 'Zarina T.',
+          city: 'Shymkent',
+          avatar: 'https://randomuser.me/api/portraits/women/68.jpg',
+          rating: 4.9,
+          specialties: ['family', 'relationships'],
+          education: 'MA in Clinical Psychology, KIMEP University',
+        },
+        {
+          id: 'T004',
+          name: 'Yerbol S.',
+          city: 'Karaganda',
+          avatar: 'https://randomuser.me/api/portraits/men/75.jpg',
+          rating: 4.7,
+          specialties: ['conflict', 'general'],
+          education: 'Certified Mediator, Bolashak Program Graduate',
+        },
+      ];
+
+      localStorage.setItem('therapists', JSON.stringify(exampleTherapists));
+      setTherapists(exampleTherapists);
+    } else {
+      setTherapists(JSON.parse(stored));
+    }
+  }, []);
 
   return (
     <div className="therapists-page">

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, Users, Settings, PlusCircle, Bell } from 'lucide-react';
+import { MessageSquare, Users, Settings, PlusCircle, Bell, LayoutList, BookOpen, HeartHandshake, History } from 'lucide-react';
 import './chats-list.css';
+import { API_URL } from '../../../config';
 
 interface User {
   id: string;
@@ -41,7 +42,7 @@ const ChatsList: React.FC = () => {
     const fetchConversations = async () => {
       try {
         const res = await fetch(
-          `http://localhost:8000/chat/chats/${currentUser.id}`
+          `${API_URL}/chat/chats/${currentUser.id}`
         );
         const data = await res.json();
         setConversations(data);
@@ -148,6 +149,29 @@ const ChatsList: React.FC = () => {
           )}
         </div>
       </main>
+
+      <nav className="bottom-navbar">
+        <button onClick={() => navigate('/home')}>
+          <MessageSquare size={20} />
+          <span>Chats</span>
+        </button>
+        <button onClick={() => navigate('/conflicts')}>
+          <History size={20} />
+          <span>Conflicts</span>
+        </button>
+        <button onClick={() => navigate('/reconciliation')}>
+          <HeartHandshake size={20} />
+          <span>Store</span>
+        </button>
+        <button onClick={() => navigate('/therapists')}>
+          <LayoutList size={20} />
+          <span>Therapists</span>
+        </button>
+        <button onClick={() => navigate('/education')}>
+          <BookOpen size={20} />
+          <span>Learn</span>
+        </button>
+      </nav>
     </div>
   );
 };

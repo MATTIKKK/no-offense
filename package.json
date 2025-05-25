@@ -19,5 +19,8 @@
   "homepage": "https://github.com/MATTIKKK/no-offense#readme",
   "devDependencies": {
     "concurrently": "^9.1.2"
+  },
+  "dependencies": {
+    "wavefile": "^11.0.0"
   }
 }

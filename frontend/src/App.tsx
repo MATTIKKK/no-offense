@@ -6,6 +6,9 @@ import {
   useNavigate,
   useLocation,
 } from 'react-router-dom';
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from 'react-speech-recognition';
 
 // Auth Screens
 import WelcomeScreen from './components/auth/welcome-screen/WelcomeScreen';
@@ -27,6 +30,7 @@ import Notifications from './components/notifications/Notifications';
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isLoading, setIsLoading] = useState(true);
 
   const [currentUser, setCurrentUser] = useState<{
     id: string;
@@ -58,20 +62,47 @@ function App() {
   // };
 
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-    if (!currentUser) {
-      return <Navigate to="/login" replace />;
-    }
-    return <>{children}</>;
-  };
+  const token = localStorage.getItem('token');
+
+  if (isLoading) {
+    return <div>Loading...</div>; // или кастомный лоадер
+  }
+
+  if (!currentUser || !token) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 
   useEffect(() => {
-    const publicRoutes = ['/', '/login', '/register'];
     const token = localStorage.getItem('token');
-
-    if (currentUser && token && publicRoutes.includes(location.pathname)) {
-      navigate('/home', { replace: true });
+    if (!token) {
+      setIsLoading(false);
+      return;
     }
-  }, [currentUser, location.pathname, navigate]);
+
+    fetch('http://localhost:8000/auth/me', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Not authorized');
+        return res.json();
+      })
+      .then((data) => {
+        setCurrentUser({ id: data.id, name: data.name });
+      })
+      .catch(() => {
+        localStorage.removeItem('token');
+        setCurrentUser(null);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
 
   return (
     <div

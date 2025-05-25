@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import './chat-screen.css';
 import { rephraseMessage } from '../../../api/rephraseMessage';
-import { useAudioRecording } from '../../../utils/liveMicRecorder';
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+import { API_URL } from '../../../config';
 
 const ChatScreen: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,14 +15,10 @@ const ChatScreen: React.FC = () => {
   const [message, setMessage] = useState('');
   const [skipAI, setSkipAI] = useState(false);
   const messageEndRef = useRef<HTMLDivElement>(null);
-  const { recording, startRecording, stopRecording, getAudioBlob } =
-    useAudioRecording();
+  const { transcript, resetTranscript } = useSpeechRecognition();
 
   const [conversation, setConversation] = useState<any | null>(null);
-  const [currentUser, setCurrentUser] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string } | null>(null);
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -33,26 +30,20 @@ const ChatScreen: React.FC = () => {
     }
     setCurrentUser({ id: userId, name: userName });
 
-    fetch(`http://localhost:8000/chat/chats/${userId}/chat/${id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Not found');
-        return res.json();
-      })
-      .then((data) => setConversation(data))
+    fetch(`${API_URL}/chat/chats/${userId}/chat/${id}`)
+      .then((res) => res.ok ? res.json() : Promise.reject())
+      .then(setConversation)
       .catch(() => navigate('/home'));
   }, [id, navigate]);
 
   useEffect(() => {
     if (!id || !currentUser?.id) return;
-
-    console.log('Creating WebSocket for chat ID:', id);
     const socket = new WebSocket(`ws://localhost:8000/ws/chat/${id}`);
     ws.current = socket;
 
     socket.onopen = () => console.log('WebSocket connected');
     socket.onmessage = (event) => {
       const msg = JSON.parse(event.data);
-      console.log('Received message:', msg);
       setConversation((prev: any) => ({
         ...prev,
         messages: [...(prev?.messages || []), msg],
@@ -61,10 +52,7 @@ const ChatScreen: React.FC = () => {
     socket.onclose = () => console.log('WebSocket closed');
     socket.onerror = (e) => console.error('WebSocket error:', e);
 
-    return () => {
-      socket.close();
-      console.log('WebSocket disconnected');
-    };
+    return () => socket.close();
   }, [id, currentUser?.id]);
 
   useEffect(() => {
@@ -72,34 +60,14 @@ const ChatScreen: React.FC = () => {
   }, [conversation?.messages]);
 
   const handleSendMessage = async () => {
-    if (!message.trim()) {
-      console.warn('Message is empty');
-      return;
-    }
-
-    if (!id || !currentUser || !ws.current) {
-      console.warn('Missing required data', {
-        id,
-        currentUser,
-        ws: ws.current,
-      });
-      return;
-    }
-
-    if (ws.current.readyState !== WebSocket.OPEN) {
-      console.warn('WebSocket is not open:', ws.current.readyState);
-      return;
-    }
+    if (!message.trim() || !id || !currentUser || !ws.current || ws.current.readyState !== WebSocket.OPEN) return;
 
     let finalMessage = message.trim();
 
     if (!skipAI) {
       try {
         const aiMessage = await rephraseMessage(finalMessage);
-        if (aiMessage !== finalMessage) {
-          console.log('AI rephrased message:', aiMessage);
-          finalMessage = aiMessage;
-        }
+        if (aiMessage) finalMessage = aiMessage;
       } catch (e) {
         console.error('AI error:', e);
       }
@@ -113,13 +81,8 @@ const ChatScreen: React.FC = () => {
       is_ai_modified: !skipAI,
     };
 
-    try {
-      ws.current.send(JSON.stringify(outgoingMessage));
-      console.log('Sent message:', outgoingMessage);
-      setMessage('');
-    } catch (err) {
-      console.error('Error sending WebSocket message:', err);
-    }
+    ws.current.send(JSON.stringify(outgoingMessage));
+    setMessage('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -129,26 +92,16 @@ const ChatScreen: React.FC = () => {
     }
   };
 
-  const handleMicClick = async () => {
-    if (!recording) {
-      await startRecording();
+  const handleMicClick = () => {
+    if (!isRecording) {
+      SpeechRecognition.startListening({ continuous: false, language: 'ru-RU' });
       setIsRecording(true);
+      resetTranscript();
     } else {
-      stopRecording();
+      SpeechRecognition.stopListening();
       setIsRecording(false);
-      const audioBlob = await getAudioBlob();
-      const formData = new FormData();
-      formData.append('file', audioBlob, 'voice.wav');
-
-      try {
-        const res = await fetch('http://localhost:8000/ai/stt', {
-          method: 'POST',
-          body: formData,
-        });
-        const data = await res.json();
-        setMessage((prev) => prev + ' ' + data.text);
-      } catch (err) {
-        console.error('STT Error:', err);
+      if (transcript) {
+        setMessage((prev) => (prev ? prev + ' ' + transcript : transcript));
       }
     }
   };
@@ -157,19 +110,13 @@ const ChatScreen: React.FC = () => {
     return <div className="chat-loading">Loading chat...</div>;
   }
 
-  const otherParticipant =
-    currentUser.id === conversation.user1.id
-      ? conversation.user2
-      : conversation.user1;
+  const otherParticipant = currentUser.id === conversation.user1.id ? conversation.user2 : conversation.user1;
 
-  const groupedMessages = (conversation.messages || []).reduce(
-    (groups: any, msg: any) => {
-      const date = format(new Date(msg.timestamp), 'yyyy-MM-dd');
-      (groups[date] = groups[date] || []).push(msg);
-      return groups;
-    },
-    {}
-  );
+  const groupedMessages = (conversation.messages || []).reduce((groups: any, msg: any) => {
+    const date = format(new Date(msg.timestamp), 'yyyy-MM-dd');
+    (groups[date] = groups[date] || []).push(msg);
+    return groups;
+  }, {});
 
   const getStatusClass = () => {
     if (conversation.conflict_status === 'active') return 'status-active';
@@ -181,15 +128,10 @@ const ChatScreen: React.FC = () => {
     <div className="chat-screen">
       <header className="chat-header">
         <div className="chat-header-left">
-          <button
-            className="chat-back-button"
-            onClick={() => navigate('/home')}
-          >
+          <button className="chat-back-button" onClick={() => navigate('/home')}>
             <ArrowLeft size={22} />
           </button>
-          <div className="chat-avatar-fallback">
-            {otherParticipant?.name?.charAt(0).toUpperCase() || '?'}
-          </div>
+          <div className="chat-avatar-fallback">{otherParticipant?.name?.charAt(0).toUpperCase() || '?'}</div>
           <div className="chat-header-info">
             <h2>{otherParticipant.name}</h2>
             <div className="chat-status">
@@ -209,28 +151,17 @@ const ChatScreen: React.FC = () => {
       <main className="chat-main">
         {Object.entries(groupedMessages).map(([date, messages]: any) => (
           <div key={date}>
-            <div className="chat-date-label">
-              {format(new Date(date), 'MMMM d, yyyy')}
-            </div>
+            <div className="chat-date-label">{format(new Date(date), 'MMMM d, yyyy')}</div>
             {messages.map((msg: any, index: number) => {
               const isUser = msg.sender_id === currentUser.id;
               return (
-                <div
-                  key={index}
-                  className={`message-wrapper ${isUser ? 'user' : 'partner'}`}
-                >
+                <div key={index} className={`message-wrapper ${isUser ? 'user' : 'partner'}`}>
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`message-bubble ${
-                      isUser ? 'message-user' : 'message-partner'
-                    }`}
+                    className={`message-bubble ${isUser ? 'message-user' : 'message-partner'}`}
                   >
-                    {msg.is_ai_modified && (
-                      <div className="message-ai-tag">
-                        AI rewrote this message
-                      </div>
-                    )}
+                    {msg.is_ai_modified && <div className="message-ai-tag">AI rewrote this message</div>}
                     <p>{msg.content}</p>
                     {msg.original_content && (
                       <details className="message-original">
@@ -238,9 +169,7 @@ const ChatScreen: React.FC = () => {
                         <p>{msg.original_content}</p>
                       </details>
                     )}
-                    <div className="message-time">
-                      {format(new Date(msg.timestamp), 'h:mm a')}
-                    </div>
+                    <div className="message-time">{format(new Date(msg.timestamp), 'h:mm a')}</div>
                   </motion.div>
                 </div>
               );
@@ -255,11 +184,7 @@ const ChatScreen: React.FC = () => {
           <div className="footer-toggle">
             <span>AI Rewording:</span>
             <button onClick={() => setSkipAI(!skipAI)}>
-              {skipAI ? (
-                <ToggleLeft size={22} />
-              ) : (
-                <ToggleRight size={22} className="toggle-active" />
-              )}
+              {skipAI ? <ToggleLeft size={22} /> : <ToggleRight size={22} className="toggle-active" />}
             </button>
           </div>
           <div className="footer-ai-hint">
@@ -275,17 +200,10 @@ const ChatScreen: React.FC = () => {
             className="footer-textarea"
             rows={1}
           />
-          <button
-            className={`footer-icon-btn ${isRecording ? 'recording' : ''}`}
-            onClick={handleMicClick}
-          >
+          <button className={`footer-icon-btn ${isRecording ? 'recording' : ''}`} onClick={handleMicClick}>
             <Mic size={22} />
           </button>
-          <button
-            className="footer-send-btn"
-            disabled={!message.trim()}
-            onClick={handleSendMessage}
-          >
+          <button className="footer-send-btn" disabled={!message.trim()} onClick={handleSendMessage}>
             <Send size={22} />
           </button>
         </div>

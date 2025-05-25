@@ -1,4 +1,5 @@
-const API_URL = 'http://localhost:8000';
+import { API_URL } from "../config";
+import { RegisterPayload } from "../types";
 
 type LoginPayload = {
   email: string;

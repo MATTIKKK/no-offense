@@ -2,12 +2,13 @@
   min-height: 100vh;
   background-color: #f9fafb;
   font-family: Arial, sans-serif;
-  padding-top: 80px; 
+  padding-top: 80px;
 }
 
 .therapist-profile-header {
   position: fixed;
   top: 0;
+  z-index: 2;
   width: 100%;
   background-color: #f1fef9;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -239,7 +240,7 @@
     font-size: 20px;
   }
 
-  .back-button {    
+  .back-button {
     padding: 4px;
     margin-right: 8px;
   }

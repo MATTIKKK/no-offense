@@ -1,5 +1,7 @@
+import { API_URL } from "../config";
+
 export async function rephraseMessage(message: string): Promise<string> {
-  const response = await fetch('http://localhost:8000/ai/rephrase', {
+  const response = await fetch(`${API_URL}/ai/rephrase`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message }),

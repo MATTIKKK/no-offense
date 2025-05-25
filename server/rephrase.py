@@ -54,16 +54,16 @@ async def rephrase_message(req: RephraseRequest):
         raise HTTPException(status_code=500, detail="Groq AI rephrasing failed")
 
 
-@router.post("/stt")
-async def speech_to_text(file: UploadFile = File(...)):
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
-            tmp.write(await file.read())
-            tmp_path = tmp.name
+# @router.post("/stt")
+# async def speech_to_text(file: UploadFile = File(...)):
+#     try:
+#         with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
+#             tmp.write(await file.read())
+#             tmp_path = tmp.name
 
-        result = whisper_model.transcribe(tmp_path, language="ru")
-        return {"text": result["text"].strip()}
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail="Whisper STT failed")
+#         result = whisper_model.transcribe(tmp_path, language="ru")
+#         return {"text": result["text"].strip()}
+#     except Exception as e:
+#         import traceback
+#         traceback.print_exc()
+#         raise HTTPException(status_code=500, detail="Whisper STT failed")

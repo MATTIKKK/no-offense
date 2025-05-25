@@ -2,13 +2,13 @@
   min-height: 100vh;
   background-color: #fcfffe;
   font-family: 'Arial', sans-serif;
-
 }
 
 .chats-list-header {
   position: fixed;
   top: 0;
   width: 100%;
+  z-index: 2;
   background-color: #f1fef9;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   padding: 16px;
@@ -218,6 +218,69 @@
   color: #d1d5db;
 }
 
+.bottom-navbar {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.03);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px 0;
+  z-index: 50;
+}
+
+.bottom-navbar button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  color: gray;
+  font-size: 16px;
+}
+
+.bottom-navbar a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: #c1c5cf;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  padding: 6px 10px;
+  border-radius: 12px;
+}
+
+.bottom-navbar a svg {
+  margin-bottom: 2px;
+  width: 30px;
+  height: 30px;
+  color: #9ca3af;
+  transition: color 0.2s ease;
+}
+
+.bottom-navbar a:hover {
+  background-color: #f1fef9;
+  color: #059669;
+}
+
+.bottom-navbar a:hover svg {
+  color: #059669;
+}
+
+.bottom-navbar a.active {
+  background-color: #ecfdf5;
+  color: #047857;
+  font-weight: 600;
+}
+
+.bottom-navbar a.active svg {
+  color: #047857;
+}
+
 @media (max-width: 600px) {
   .chat-header-inner,
   .chat-main {
@@ -236,5 +299,9 @@
 
   .chat-card-inner {
     padding: 12px;
+  }
+
+  .bottom-navbar button {
+    font-size: 14px;
   }
 }

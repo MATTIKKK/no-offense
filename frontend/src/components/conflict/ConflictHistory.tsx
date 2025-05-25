@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { MessageSquare, Users, Settings, PlusCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import './conflict-history.css';
+import { API_URL } from '../../config';
 
 const ChatsList: React.FC = () => {
   const navigate = useNavigate();
@@ -22,13 +23,13 @@ const ChatsList: React.FC = () => {
 
   useEffect(() => {
     const fetchConversations = async () => {
-      try {
-        const res = await fetch(`http://localhost:8000/conversations/${localStorage.getItem('userId')}`);
-        const data = await res.json();
-        setConversations(data);
-      } catch (err) {
-        console.error('Failed to load conversations:', err);
-      }
+      // try {
+      //   const res = await fetch(`${API_URL}/conversations/${localStorage.getItem('userId')}`);
+      //   const data = await res.json();
+      //   setConversations(data);
+      // } catch (err) {
+      //   console.error('Failed to load conversations:', err);
+      // }
     };
 
     fetchConversations();
@@ -66,13 +67,13 @@ const ChatsList: React.FC = () => {
       </header>
 
       <main className="chats-list-main">
-        <div className="chat-connections-header">
+        {/* <div className="chat-connections-header">
           <h2>Connections</h2>
           <button onClick={() => navigate('/create-shared-id')}>
             <PlusCircle size={18} />
             <span>Add New</span>
           </button>
-        </div>
+        </div> */}
 
         <div className="chat-list">
           {conversations.length === 0 ? (

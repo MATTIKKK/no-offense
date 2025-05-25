@@ -6,6 +6,7 @@ import './create-shared-id.css';
 import Button from '../../ui/button/Button';
 import Input from '../../ui/Input';
 import { RelationshipType } from '../../../types';
+import { API_URL } from '../../../config';
 
 const CreateInvite: React.FC = () => {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ const CreateInvite: React.FC = () => {
       const fromUserId = localStorage.getItem('userId');
       if (!fromUserId) throw new Error('User not logged in');
 
-      const res = await fetch(`http://localhost:8000/chat/invite`, {
+      const res = await fetch(`${API_URL}/chat/invite`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
